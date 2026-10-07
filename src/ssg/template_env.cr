@@ -6,7 +6,8 @@ module SSG
   #
   # Extra filters:   date(format), markdown, absurl, slugify, json
   # Extra functions: ref(path) -> url of the page at that content path,
-  #                  highlight_css() -> stylesheet for the highlighting theme,
+  #                  highlight_css(theme="") -> stylesheet for the configured
+  #                    highlighting themes, or for the named theme alone,
   #                  error(message) -> fails the build; for shortcodes
   #
   # Shortcodes are ordinary Jinja macros in layouts/shortcodes.j2. They are
@@ -58,9 +59,18 @@ module SSG
         message.empty? ? "" : raise Crinja::RuntimeError.new(message)
       end
 
-      crinja.functions["highlight_css"] = Crinja.function do
-        md = site.registry.processors["md"]?.as?(Processors::Markdown)
-        Crinja::SafeString.new(md.try(&.css) || "")
+      crinja.functions["highlight_css"] = Crinja.function({theme: ""}) do
+        theme = arguments["theme"].to_s
+        css = if theme.empty?
+                site.registry.processors["md"]?.as?(Processors::Markdown).try(&.css) || ""
+              else
+                begin
+                  Processors::Markdown.css(theme)
+                rescue Error
+                  raise Crinja::RuntimeError.new("highlight_css: unknown theme #{theme.inspect}")
+                end
+              end
+        Crinja::SafeString.new(css)
       end
 
       crinja

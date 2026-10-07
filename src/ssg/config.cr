@@ -12,6 +12,8 @@ module SSG
     getter cascade : FrontMatter::Data
     # Highlighting theme name, nil when highlighting is off.
     getter highlight_theme : String?
+    # Theme used under `prefers-color-scheme: dark`, nil for none.
+    getter highlight_dark_theme : String?
     getter? line_numbers : Bool
     # nested | expanded | compact | compressed
     getter sass_style : String
@@ -34,6 +36,7 @@ module SSG
       @permalinks = data["permalinks"]?.try(&.as_h?).try { |h| h.to_h { |k, v| {k.to_s, v.as_s} } } || {} of String => String
       @cascade = data["cascade"]?.try(&.as_h?).try(&.to_h { |k, v| {k.to_s, v} }) || FrontMatter::Data.new
       @highlight_theme = "default-dark"
+      @highlight_dark_theme = nil
       @line_numbers = false
       @taxonomies = data["taxonomies"]?.try(&.as_a?).try(&.map(&.as_s)) || DEFAULT_TAXONOMIES
       @content_dir = File.join(@root, data["content_dir"]?.try(&.as_s?) || "content")
@@ -88,7 +91,8 @@ module SSG
     end
 
     # `markdown:` block: boolean markd options by name, plus `highlight`
-    # (false, or a theme name) and `line_numbers`.
+    # (false, or a theme name), `highlight_dark` (a theme name) and
+    # `line_numbers`.
     private def markdown_options(any : YAML::Any?) : Markd::Options # ameba:disable Metrics/CyclomaticComplexity
       o = Markd::Options.new
       any.try(&.as_h?).try &.each do |k, v|
@@ -96,6 +100,9 @@ module SSG
         case k.to_s
         when "highlight"
           @highlight_theme = v.as_s? || (flag ? "default-dark" : nil)
+          next
+        when "highlight_dark"
+          @highlight_dark_theme = v.as_s?
           next
         when "line_numbers"
           @line_numbers = flag

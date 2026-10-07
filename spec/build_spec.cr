@@ -203,6 +203,12 @@ describe SSG::Builder do
       File.exists?(File.join(outdir, "blog/draft/index.html")).should be_false
     end
 
+    it "emits the dark highlighting theme under prefers-color-scheme" do
+      css = File.read(File.join(outdir, "css/highlight.css"))
+      css.should contain "@media (prefers-color-scheme: dark) {"
+      css.should contain SSG::Processors::Markdown.css("github-dark")
+    end
+
     it "uses section layouts and processes .md.j2 before markdown" do
       File.read(File.join(outdir, "2026/09/hello-world/index.html")).should contain "<title>Blog: Hello, World</title>"
       File.read(File.join(outdir, "2026/09/second-post/index.html")).should contain "<strong>Example Site</strong>"

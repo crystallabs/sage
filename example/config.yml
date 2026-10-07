@@ -8,5 +8,6 @@ permalinks:
   blog: /:year/:month/:slug/
 markdown:
   highlight: github
+  highlight_dark: github-dark
 cascade:
   author: Jane Doe

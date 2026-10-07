@@ -1,6 +1,14 @@
-# Builds ssg for each platform when a release is published and attaches the
-# binaries to it. Re-run for an existing release with "Run workflow" and its
-# tag.
+# Runs the specs and the linter on every push and pull request. When a
+# release is published, additionally builds ssg for each platform and
+# attaches the archives to the release, after the specs have passed. Re-run
+# the release part for an existing release with "Run workflow" and its tag.
+#
+# Release assets, as in https://github.com/crystallabs/fluence/releases:
+#
+#   ssg-<tag>-linux-x86_64.tar.gz    (+ .sha256)
+#   ssg-<tag>-linux-aarch64.tar.gz   (+ .sha256)
+#   ssg-<tag>-macos-x86_64.tar.gz    (+ .sha256)
+#   ssg-<tag>-macos-aarch64.tar.gz   (+ .sha256)
 #
 # Linux binaries are fully static (musl, built in the Alpine Crystal image
 # by .github/build-linux.sh) and are run inside a debian:12 container before
@@ -11,9 +19,13 @@
 #
 # macOS binaries are built with Homebrew Crystal, but every Homebrew library
 # is linked statically so the result depends only on system frameworks.
-name: Release
+name: CI
 
 on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
   release:
     types: [published]
   workflow_dispatch:
@@ -29,8 +41,41 @@ env:
   TAG: ${{ github.event.release.tag_name || inputs.tag }}
 
 jobs:
+  test:
+    name: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TAG || github.ref }}
+
+      # install-crystal installs packages without refreshing the package
+      # index, which fails when the runner image's index has gone stale.
+      - name: Install native libraries
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y libsass-dev
+
+      - uses: crystal-lang/install-crystal@v1
+
+      - name: Install dependencies
+        run: shards install
+
+      - name: Run specs
+        run: crystal spec
+
+      - name: Build
+        run: crystal build --no-codegen src/main.cr
+
+      - name: Lint
+        run: |
+          shards build ameba
+          bin/ameba
+
   build-linux:
     name: build linux-${{ matrix.arch }}
+    needs: test
+    if: github.event_name == 'release' || github.event_name == 'workflow_dispatch'
     runs-on: ${{ matrix.runner }}
     strategy:
       fail-fast: false
@@ -40,6 +85,8 @@ jobs:
           - {arch: aarch64, runner: ubuntu-24.04-arm}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TAG }}
 
       - name: Build in the Alpine Crystal image
         run: |
@@ -66,6 +113,8 @@ jobs:
     container: debian:12
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TAG }}
 
       - uses: actions/download-artifact@v4
         with:
@@ -88,6 +137,8 @@ jobs:
         arch: [x86_64, aarch64]
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TAG }}
 
       - uses: actions/download-artifact@v4
         with:
@@ -105,15 +156,19 @@ jobs:
 
   macos:
     name: macos-${{ matrix.arch }}
+    needs: test
+    if: github.event_name == 'release' || github.event_name == 'workflow_dispatch'
     runs-on: ${{ matrix.runner }}
     strategy:
       fail-fast: false
       matrix:
         include:
-          - {arch: arm64,  runner: macos-latest}
-          - {arch: x86_64, runner: macos-15-intel}
+          - {arch: aarch64, runner: macos-latest}
+          - {arch: x86_64,  runner: macos-15-intel}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TAG }}
 
       - uses: crystal-lang/install-crystal@v1
 

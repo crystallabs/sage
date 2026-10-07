@@ -1,7 +1,7 @@
 #!/bin/sh
 # Builds a fully static ssg binary for Linux. Runs inside the
 # crystallang/crystal:latest-alpine image with the checkout mounted as the
-# working directory; see release.yml.
+# working directory; see workflows/ci.yml.
 set -eux
 
 LIBSASS_VERSION=3.6.6

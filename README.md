@@ -1,18 +1,20 @@
 # ssg
 
-A small static site generator in Crystal. Content is Markdown, templates are
-[Crinja](https://github.com/straight-shoota/crinja) (Jinja2), and output
-formats are derived from filename extension chains rather than configured.
+A reasonable static site generator. Content is Markdown, templates are
+Jinja2 by default, and output formats are derived from filename extension
+chains rather than configured.
 
 ## Usage
 
-    ssg init DIR                               # a minimal site that builds
-    ssg build [-s DIR] [-b URL] [--drafts] [--clean] [--touch]
-    ssg serve [-s DIR] [-p PORT] [-b URL] [--drafts]   # rebuilds and reloads the browser on change
-    ssg orphans [-s DIR] [-0]
-    ssg diff [-s DIR] [--missing | --extra] [--ignore GLOB]... [--strict] [-l] [-0] [DIR]
-    ssg pages [-s DIR] [--drafts | --published | --implicit] [-l] [-0] [FILTER...]   # list pages by front matter
-    ssg hugo-convert [-w] FILE...
+```sh
+ssg init DIR                               # a minimal site that builds
+ssg build [-s DIR] [-b URL] [--drafts] [--clean] [--touch]
+ssg serve [-s DIR] [-p PORT] [-b URL] [--drafts]   # rebuilds and reloads the browser on change
+ssg orphans [-s DIR] [-0]   # shows orphaned output files with no source
+ssg diff [-s DIR] [--missing | --extra] [--ignore GLOB]... [--strict] [-l] [-0] [DIR]
+ssg pages [-s DIR] [--drafts | --published | --implicit] [-l] [-0] [FILTER...]   # list pages by front matter
+ssg hugo-convert [-w] FILE...
+```
 
 `-b URL` overrides `base_url` for one build; `serve` defaults it to the
 local address.
@@ -26,16 +28,18 @@ computed from the site graph, so nothing is rendered or written:
 
 `ssg diff DIR` compares that set with the files under DIR, in the same
 way, and prints one line per difference, ordered by path relative to
-DIR. `+ path<TAB>origin` is a file the site would produce that DIR
+DIR. In the output, `+ <path> <origin>` is a file the site would produce that DIR
 lacks, with the source file (relative to the current directory), `list
-/tags/foo/` or `alias /old/ of blog/new` that produces it; `- path` is
-a file under DIR that the site would not produce; and `~ old<TAB>new`
+/tags/foo/` or `alias /old/ of blog/new` that produces it; `- <path>` is
+a file under DIR that the site would not produce; and `~ <old> <new>`
 pairs one of each that differ only in url spelling, that is in case or
 in `foo.html` against `foo/index.html`. The exit status is 1 when
 anything was listed, so a build of the same site by other software can
 be kept as a fixture and checked against:
 
-    ssg diff ../old-site/public --ignore '*.bak' --ignore resources/
+```sh
+ssg diff ../old-site/public --ignore '*.bak' --ignore resources/
+```
 
 `--ignore GLOB` leaves matching files out on both sides and may repeat:
 a pattern without `/` must match one path component (`*.bak`, `gen`),
@@ -57,7 +61,7 @@ well, for the same purpose with plain shell tools:
 
 `ssg pages` lists the pages that have a source file, drafts included
 (synthesized sections and taxonomy pages have none), one
-`path<TAB>title` line each, ordered by path. Paths are relative to the
+`<path> <title>` line each, ordered by path. Paths are relative to the
 current directory; `-l` prints them alone, and `-0` does so
 NUL-terminated. Like `orphans`, it reads the site graph and renders
 nothing. Each argument is a filter on the page's front matter, cascaded
@@ -82,7 +86,7 @@ narrow either further:
 
 `--implicit` lists the other kind of page instead: those a build creates
 without a source file, which are implicit sections, taxonomy indexes and
-terms. They are printed as `url<TAB>title`, ordered by url, and drafts are
+terms. They are printed as `<url> <title>`, ordered by url, and drafts are
 left out as in a build, since drafts decide which of these pages exist:
 
     ssg pages --implicit
@@ -102,6 +106,7 @@ optionally `static/` and `data/`. Output goes to `public/`.
       smart: true                    # curly quotes and dashes
       safe: false                    # true drops raw html
       highlight: github              # theme name, or false; default default-dark
+      highlight_dark: github-dark    # theme under prefers-color-scheme: dark; default none
       line_numbers: false
     params:                          # free-form, available as site.params
       author: Jane
@@ -231,9 +236,18 @@ For a taxonomy nobody should see at all, dropping it from `taxonomies` in
 ## Code highlighting
 
 Fenced code blocks are highlighted at build time (Tartrazine, Chroma's
-lexers and themes). Output uses css classes, so emit the theme's stylesheet
-once, for example as `content/css/highlight.css.j2` containing
-`{{ highlight_css() }}`. Unknown languages render as plain code.
+lexers and themes, plus the Base16 schemes). Output uses css classes, so
+emit the theme's stylesheet once, for example as `content/css/highlight.css.j2`
+containing `{{ highlight_css() }}`. Unknown languages render as plain code.
+
+With `highlight_dark` set, `highlight_css()` appends that theme's rules in a
+`@media (prefers-color-scheme: dark)` block, so the colors follow the
+reader's system setting. A site that switches themes itself can instead ask
+for one theme at a time, `highlight_css("github-dark")`, and nest the rules
+under its own selector, for example in a `highlight.css.scss.j2` file:
+
+    {{ highlight_css() }}
+    [data-theme="dark"] { {{ highlight_css("github-dark") }} }
 
 ## Page kinds and layout lookup
 
@@ -253,7 +267,7 @@ So `layouts/page.html.j2` and `layouts/list.html.j2` are all a site needs,
 `layouts/blog/page.html.j2` overrides posts, and `layouts/tags/list.html.j2`
 covers both `/tags/` and every term under it.
 
-Layouts are full Crinja templates, so `{% extends %}`, `{% include %}` and
+Layouts are full templates, so `{% extends %}`, `{% include %}` and
 `{% import %}` work relative to `layouts/`. The page body is in `content`.
 
 ## Pagination
@@ -286,7 +300,7 @@ page by content path, or by slug or directory name when given a bare name.
 
 Extra filters: `date(format)`, `markdown` (with the `markdown:` options from
 `config.yml`), `absurl`, `slugify`, `json`
-(plain JSON, unlike Crinja's html-escaping `tojson`).
+(plain JSON, unlike html-escaping `tojson`).
 Extra functions: `ref(content_path)`.
 
 ## Static files and Sass
@@ -305,8 +319,8 @@ output style (nested, expanded, compact, compressed).
     theme: minima            # or a list, highest priority first
 
 A theme is a directory `themes/<name>/` with its own `layouts/`, `static/`
-and `data/`. `themes/minima/` in this repository is a complete one, ported
-from Hugo, with its own README and example site. Lookups go to the site's directory first, then to each theme
+and `data/`. `themes/minima/` in this repository is a complete clean one,
+with its own README and example site. Lookups go to the site's directory first, then to each theme
 in order: a layout, static file, data file or shortcode macro in the site
 overrides the theme's copy of the same path or name, and `{% extends %}`
 and `{% include %}` resolve the same way. Everything else about a theme is
@@ -328,7 +342,7 @@ templates and content can call them directly:
     Some lines.
     {% endcall %}
 
-Macros see `page` and `site`. Two Crinja quirks to know: `a or b` yields a
+Macros see `page` and `site`. Two quirks to know: `a or b` yields a
 boolean, so use `a | default(b, true)` for fallbacks; and there is no inline
 `x if c else y`, so use `{% if %}` blocks.
 
@@ -380,9 +394,3 @@ packages, or point the linker at local symlinks:
     crystal build src/main.cr -o bin/ssg --link-flags "-L$PWD/.link"
 
 Tests: `crystal spec`.
-
-Publishing a GitHub release runs `.github/workflows/release.yml`, which
-attaches binaries to it: static Linux builds for x86_64 and aarch64,
-verified in a Debian 12 container before upload, and macOS builds for
-arm64 and x86_64 with all Homebrew libraries linked in, so none of them
-need anything installed on the target machine.

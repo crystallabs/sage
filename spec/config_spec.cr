@@ -55,6 +55,30 @@ describe SSG::Config do
     expect_raises(SSG::Error, /unknown highlight theme/) { SSG::Processors::Markdown.formatter("no-such-theme", false) }
   end
 
+  it "adds a dark highlighting theme under prefers-color-scheme" do
+    data = SSG::FrontMatter::Data.new
+    data["markdown"] = YAML.parse("highlight: github\nhighlight_dark: github-dark")
+    c = SSG::Config.new("/x", data)
+    c.highlight_dark_theme.should eq "github-dark"
+    SSG::Config.new("/x", SSG::FrontMatter::Data.new).highlight_dark_theme.should be_nil
+
+    light_only = SSG::Processors::Markdown.new(formatter: SSG::Processors::Markdown.formatter("github", false))
+    light_only.css.should_not contain "@media"
+    both = SSG::Processors::Markdown.new(formatter: light_only.formatter, dark_formatter: SSG::Processors::Markdown.formatter("github-dark", false))
+    both.css.should start_with light_only.css
+    both.css.should contain "\n@media (prefers-color-scheme: dark) {.hl-"
+    both.css.should contain SSG::Processors::Markdown.css("github-dark")
+    expect_raises(SSG::Error, /unknown highlight theme/) { SSG::Processors::Markdown.css("no-such-theme") }
+  end
+
+  it "lets templates ask for one highlighting theme by name" do
+    site = load_fixture("classify")
+    crinja = SSG::TemplateEnv.build(site)
+    crinja.from_string(%({{ highlight_css("github-dark") }})).render.should eq SSG::Processors::Markdown.css("github-dark")
+    crinja.from_string(%({{ highlight_css() }})).render.should eq SSG::Processors::Markdown.css("default-dark")
+    expect_raises(Crinja::RuntimeError, /unknown theme "nope"/) { crinja.from_string(%({{ highlight_css("nope") }})).render }
+  end
+
   it "accepts one theme or a list and rejects missing ones" do
     root = File.join(FIXTURES, "classify")
     data = SSG::FrontMatter::Data.new

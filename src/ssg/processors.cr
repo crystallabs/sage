@@ -7,8 +7,11 @@ module SSG
   module Processors
     class Markdown < Chain::Processor
       getter formatter : Tartrazine::Html?
+      # Only its stylesheet is used, under `prefers-color-scheme: dark`.
+      getter dark_formatter : Tartrazine::Html?
 
-      def initialize(@options = Markd::Options.new, @formatter : Tartrazine::Html? = nil)
+      def initialize(@options = Markd::Options.new, @formatter : Tartrazine::Html? = nil,
+                     @dark_formatter : Tartrazine::Html? = nil)
       end
 
       def self.formatter(theme : String?, line_numbers : Bool) : Tartrazine::Html?
@@ -18,9 +21,19 @@ module SSG
         raise Error.new("config: unknown highlight theme #{theme.inspect}", cause: e)
       end
 
-      # Stylesheet for the highlighting theme, for templates to emit.
+      # Stylesheet for the highlighting theme, for templates to emit. The
+      # dark theme's rules, if any, follow in a prefers-color-scheme block.
       def css : String
-        @formatter.try(&.style_defs) || ""
+        light = @formatter.try(&.style_defs) || ""
+        return light unless dark = @dark_formatter.try(&.style_defs)
+        "#{light}\n@media (prefers-color-scheme: dark) {#{dark}}"
+      end
+
+      # Stylesheet for a theme by name, regardless of the configured ones.
+      def self.css(theme : String) : String
+        Tartrazine::Html.new(theme: Tartrazine.theme(theme), class_prefix: "hl-").style_defs
+      rescue e : Exception
+        raise Error.new("config: unknown highlight theme #{theme.inspect}", cause: e)
       end
 
       def ext : String
@@ -151,13 +164,14 @@ module SSG
     end
 
     def self.default_registry(config : Config) : Chain::Registry
-      default_registry(config.markdown, Markdown.formatter(config.highlight_theme, config.line_numbers?), Sass.style(config.sass_style))
+      default_registry(config.markdown, Markdown.formatter(config.highlight_theme, config.line_numbers?),
+        Sass.style(config.sass_style), Markdown.formatter(config.highlight_dark_theme, config.line_numbers?))
     end
 
     def self.default_registry(markdown = Markd::Options.new, formatter : Tartrazine::Html? = nil,
-                              sass_style = ::Sass::OutputStyle::NESTED) : Chain::Registry
+                              sass_style = ::Sass::OutputStyle::NESTED, dark_formatter : Tartrazine::Html? = nil) : Chain::Registry
       Chain::Registry.new
-        .register(Markdown.new(markdown, formatter))
+        .register(Markdown.new(markdown, formatter, dark_formatter))
         .register(Sass.new("scss", sass_style))
         .register(Sass.new("sass", sass_style))
         .register(Jinja.new)
