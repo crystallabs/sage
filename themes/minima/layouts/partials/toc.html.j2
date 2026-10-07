@@ -1,9 +1,10 @@
-{% if page.headings %}
+{% if page.headings | length > 0 %}
+{% set numbered = page.toc_numbers | default(site.params.toc_numbers) | default(true) %}
 <nav class="toc">
   <h2>Table of Contents</h2>
   <ul>
   {% for h in page.headings %}
-    <li class="level-{{ h.level }}"><a href="#{{ h.id }}">{{ h.text }}</a></li>
+    <li class="level-{{ h.level }}"><a href="#{{ h.id }}">{% if numbered %}<span class="number">{{ h.number }}</span> {% endif %}{{ h.text }}</a></li>
   {% endfor %}
   </ul>
 </nav>

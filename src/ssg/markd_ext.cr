@@ -38,3 +38,24 @@ class Markd::HTMLRenderer
     end
   end
 end
+
+# markd takes everything from a `&` up to the next `;` in the paragraph as an
+# entity reference, so "AT&T ... [link](x) ...; ..." loses every piece of
+# inline markup in between. Only accept what has the form of an entity.
+class Markd::Parser::Inline
+  private def entity(node : Node)
+    return false unless char_at?(@pos) == '&'
+    raw = match(Rule::NUMERIC_HTML_ENTITY) || match(Rule::HTML_ENTITY) || return false
+    node.append_child(text(HTML.decode_entity(raw.byte_slice(1, raw.bytesize - 2))))
+    true
+  end
+
+  # GFM's bare autolinks (www., http://, ...) are only recognized at the start
+  # of a line, after whitespace, or after one of `*_~(`. markd checks that
+  # when scanning text but not here, so the url in `<a href="u">u</a>` was
+  # linked a second time, taking the `<` of `</a>` with it.
+  private def auto_link(node : Node)
+    return false if char_at?(@pos) != '<' && @pos > 0 && !"*_~( \n\t".includes?(char_at(@pos - 1))
+    previous_def
+  end
+end

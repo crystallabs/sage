@@ -26,7 +26,7 @@ Use it from a site's `config.yml`:
       404.html.j2        for a page with `layout: "404"` and `url: /404.html`
       list.xml.j2        RSS for the home page, sections and terms
       home.json.j2       search index
-      shortcodes.j2      macros: L, R, bq, series, tags, terms
+      shortcodes.j2      macros: L, R, bq, cite, references, series, tags, terms
       partials/          item, series box, links box, toc, plugins
     static/css/             minima.css.scss plus _partials, compiled by the tool
     static/js/              minima.js (scheme switch), search.js, fuse
@@ -38,9 +38,13 @@ Use it from a site's `config.yml`:
       brand: Minima                 # header text, optional
       greet: "Hello :)"             # home page heading
       subtitle:                     # appended to the home page <title>
+      description:                  # meta description of the home page; default: author.description
       author:
+        name: Someone               # author in the articles' structured data, optional
         status: Currently on Earth
         description: Markdown shown on the home page
+      publisher: Some Org           # publisher in the articles' structured data, optional
+      noindex: [tags]               # taxonomies whose pages ask search engines not to index them
       copyright: "© 2026 Someone"
       menu:                         # header links
         - {name: Tags, url: /tags/}
@@ -54,6 +58,7 @@ Use it from a site's `config.yml`:
       display_description: true
       selectable: true              # false disables text selection
       toc: false                    # default for pages; `toc: true` in front matter overrides
+      toc_numbers: true             # section numbers (1, 1.1, 2) in the ToC; front matter overrides
       rss_limit: 20
       search: {title: Search, placeholder: Enter keywords, fuse: {keys: [title, summary, content], threshold: 0.4}}
       math: {enable: false}         # KaTeX; `math: true` in front matter overrides
@@ -67,13 +72,18 @@ Descriptions for series and tags come from `data/series.yml` and
 ## Front matter
 
 `title`, `date`, `lastmod`, `description`, `tags`, `series`, `weight`
-(order within a series), `draft`, `toc`, `math`, `diagram`, `comment`,
+(order within a series), `draft`, `toc`, `toc_numbers`, `math`, `diagram`, `comment`,
 `banner` (image url), `link` (list entries point there instead).
+
+`references`, a map of key to Markdown, gives an article numbered
+citations in IEEE style: `{{ cite("key") }}` renders a linked `[N]`,
+numbered from 1 in order of first use, and `{{ references() }}` lists
+the cited entries in that order. See `exampleSite/content/citations.md.j2`.
 
 ## Differences from the Hugo theme
 
-Left out: i18n and multilingual mode, Google Analytics and OpenGraph
-tags, the JS bundler and asset fingerprinting, and the "friends" feed.
+Left out: i18n and multilingual mode, Google Analytics, OpenGraph
+images, the JS bundler and asset fingerprinting, and the "friends" feed.
 The stylesheet is SCSS compiled at build time, generating only the
 utility classes the layouts use. Links are collected from the rendered article rather than
 recorded by a shortcode, so plain Markdown links count too. Highlighting

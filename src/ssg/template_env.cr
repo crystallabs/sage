@@ -6,7 +6,8 @@ module SSG
   #
   # Extra filters:   date(format), markdown, absurl, slugify, json
   # Extra functions: ref(path) -> url of the page at that content path,
-  #                  highlight_css() -> stylesheet for the highlighting theme
+  #                  highlight_css() -> stylesheet for the highlighting theme,
+  #                  error(message) -> fails the build; for shortcodes
   #
   # Shortcodes are ordinary Jinja macros in layouts/shortcodes.j2. They are
   # imported once into the environment's root context, so every template
@@ -27,7 +28,7 @@ module SSG
       end
 
       crinja.filters["markdown"] = Crinja.filter do
-        Crinja::SafeString.new(Markd.to_html(target.to_s))
+        Crinja::SafeString.new(Markd.to_html(target.to_s, site.config.markdown))
       end
 
       crinja.filters["absurl"] = Crinja.filter do
@@ -48,6 +49,13 @@ module SSG
         path = arguments["path"].to_s
         page = site.find(path) || raise Crinja::RuntimeError.new("ref: no page at #{path.inspect}")
         page.url
+      end
+
+      # Lets a shortcode reject bad input, such as a key that names nothing.
+      # (The conditional keeps the block from being typed NoReturn.)
+      crinja.functions["error"] = Crinja.function({message: ""}) do
+        message = arguments["message"].to_s
+        message.empty? ? "" : raise Crinja::RuntimeError.new(message)
       end
 
       crinja.functions["highlight_css"] = Crinja.function do

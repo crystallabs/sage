@@ -1,3 +1,3 @@
 require "./ssg"
 
-SSG::CLI.run
+SSG::CLI.main

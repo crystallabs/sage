@@ -6,10 +6,26 @@
 {# Link to another page by slug, directory name or content path. Usage: R("unix-philosophy") #}
 {% macro R(name, title=none) %}{% set target = site.page(name) %}<a href="{{ target.url }}">{{ title | default(target.title, true) }}</a>{% endmacro %}
 
+{# Lowercase variants from the Hugo theme, where they kept a link out of the article's link list. Here they are plain aliases. #}
+{% macro l(url, title=none) %}{{ L(url, title) }}{% endmacro %}
+{% macro r(name, title=none) %}{{ R(name, title) }}{% endmacro %}
+
+{# Numbered citations in IEEE style, for an article that cites a reference list instead of linking its text.
+   The page lists its sources in front matter, as Markdown, under keys of its choosing:
+     references:
+       ritchie1984: >-
+         D. M. Ritchie, "The evolution of the UNIX time-sharing system," *AT&T Bell Lab. Tech. J.*, ...
+   cite("ritchie1984") gives a linked [N]. Numbers start at 1 and follow the order of first use.
+   references() lists the cited entries in that order; entries never cited are left out. #}
+{% macro cite(key) %}{% set n = page.store.get("cite:" ~ key) %}{% if n is undefined %}{% set refs = page.params.references | default({}) %}{% if refs[key] is undefined %}{{ error("cite: no reference " ~ key ~ " in the front matter of " ~ page.path) }}{% endif %}{% set n = (page.store.get("cited") | default([]) | length) + 1 %}{{ page.store.append("cited", key) }}{{ page.store.set("cite:" ~ key, n) }}{% endif %}<a href="#ref-{{ n }}">[{{ n }}]</a>{% endmacro %}
+{% macro references() %}<div class="references">
+{% for key in page.store.get("cited") | default([]) %}<div id="ref-{{ loop.index }}">{{ ("[" ~ loop.index ~ "] " ~ page.params.references[key]) | markdown | trim }}</div>
+{% endfor %}</div>{% endmacro %}
+
 {# Verbatim block quote. Usage: call bq(cite="Someone") ... endcall #}
 {% macro bq(cite=none) %}<blockquote class="text">
-{{ caller() | trim | escape | replace("\n", "<br>") | safe }}{% if cite %}
-<cite>{{ cite }}</cite>{% endif %}
+{{ caller() | trim | forceescape | replace("\n", "<br>") | safe }}{% if cite %}
+<cite>{{ cite | forceescape }}</cite>{% endif %}
 </blockquote>{% endmacro %}
 
 {# Lists of all terms of a taxonomy, with descriptions from data/<taxonomy>.yml #}

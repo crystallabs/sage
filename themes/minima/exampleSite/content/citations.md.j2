@@ -1,0 +1,16 @@
+---
+title: Citations
+references:
+  second: >-
+    B. Author, *Second Source*. City: Publisher, 2002.
+  first: >-
+    A. Author. "First source." example.org. <https://example.org/first> (accessed Jan. 1, 2026).
+  unused: >-
+    C. Author, *Never Cited*.
+---
+Numbers follow the order of first use {{ cite("first") }}, not the order of the list {{ cite("second") }}.
+A source cited again keeps its number {{ cite("first") }}.
+
+## References
+
+{{ references() }}

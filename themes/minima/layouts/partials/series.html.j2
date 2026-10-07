@@ -1,6 +1,6 @@
 {#- "Article collection" box: the series this page belongs to, with all parts in weight order. -#}
 {% set series_terms = page.terms_for("series") %}
-{% if series_terms %}
+{% if series_terms | length > 0 %}
 {% set descriptions = site.data.series | default({}) %}
 <div class="series">
   <h2>Article Collection</h2>

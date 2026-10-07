@@ -40,7 +40,7 @@ describe SSG::Builder do
       html.should contain %([A "quoted" name=https://x.test/a!][B=https://x.test/b!][plain=/about/])
       html.should contain %(<h1 id="first">First</h1>)
       html.should contain %(<h1 id="first-2">First</h1>)
-      html.should contain "(#first)(#first-2)"
+      html.should contain "(#first=1)(#first-2=2)(#sub=2.1)(#deep=2.1.0.1)(#third=3)"
       html.should contain %(|See A "quoted" name and B and plain.|)
     end
 
@@ -134,12 +134,51 @@ describe SSG::Builder do
       list.should eq [hidden, stray]
       File.exists?(removed).should be_false # nothing was built
 
+      d = SSG::Builder.diff(root)
+      d.dir.should eq outdir
       io = IO::Memory.new
-      SSG::Builder.print_orphans(list, io)
-      io.to_s.should eq "#{hidden}\n#{stray}\n"
+      SSG::Builder.print_diff(d, io, :extra, true, base: outdir).should be_true
+      io.to_s.should eq ".stale\nold/leftover.html\n"
       io = IO::Memory.new
-      SSG::Builder.print_orphans(list, io, nul: true)
-      io.to_s.should eq "#{hidden}\0#{stray}\0"
+      SSG::Builder.print_diff(d, io, :extra, true, nul: true, base: outdir)
+      io.to_s.should eq ".stale\0old/leftover.html\0"
+    end
+
+    it "compares the plan with another directory without building" do
+      SSG::Builder.build(root, clean: true, log: IO::Memory.new)
+      other = File.join(FIXTURES, "..", "out", "diff[*]") # no glob may choke on the name
+      FileUtils.rm_rf(other)
+      FileUtils.cp_r(SSG::Config.load(root).output_dir, other)
+      File.rename(File.join(other, "about/index.html"), File.join(other, "About.html"))
+      File.delete(File.join(other, "docs/index.html"))
+      File.write(File.join(other, "stray.html"), "x")
+      Dir.mkdir_p(File.join(other, "gen"))
+      File.write(File.join(other, "gen/x.bak"), "x")
+
+      SSG::Builder.diff(root).empty?.should be_true # the output directory itself
+
+      d = SSG::Builder.diff(root, other)
+      d.dir.should eq other
+      d.extra.should eq ["About.html", "gen/x.bak", "stray.html"]
+      d.missing.map(&.rel).should eq ["about/index.html", "docs/index.html"]
+      d.renamed.map { |r, j| {r, j.rel} }.should eq [{"About.html", "about/index.html"}]
+      File.exists?(File.join(other, "docs/index.html")).should be_false # nothing was built
+
+      SSG::Builder.diff(root, other, strict: true).renamed.should be_empty
+      SSG::Builder.diff(root, other, ["*.bak"]).extra.should eq ["About.html", "stray.html"]
+      SSG::Builder.diff(root, other, ["gen"]).extra.should eq ["About.html", "stray.html"]
+      SSG::Builder.diff(root, other, ["gen/"]).extra.should eq ["About.html", "stray.html"]
+      SSG::Builder.diff(root, other, ["gen/*.bak", "docs/index.html"]).missing.map(&.rel).should eq ["about/index.html"]
+
+      io = IO::Memory.new
+      SSG::Builder.print_diff(d, io, base: root).should be_true
+      io.to_s.should eq "~ About.html\tabout/index.html\n+ docs/index.html\tlist /docs/\n- gen/x.bak\n- stray.html\n"
+      io = IO::Memory.new
+      SSG::Builder.print_diff(d, io, :missing, base: File.dirname(other))
+      io.to_s.should eq "diff[*]/about/index.html\t../fixtures/classify/content/about.md\ndiff[*]/docs/index.html\tlist /docs/\n"
+      io = IO::Memory.new
+      SSG::Builder.print_diff(d, io, :missing, true, base: other)
+      io.to_s.should eq "about/index.html\ndocs/index.html\n"
     end
 
     it "overrides the base url" do
@@ -217,9 +256,24 @@ describe SSG::Builder do
       File.read(File.join(outdir, "posts/unix-philosophy/index.html")).should contain %(<span class="hl-)
     end
 
+    it "numbers citations in order of first use and lists only the cited sources" do
+      html = File.read(File.join(outdir, "citations/index.html"))
+      html.should contain %(first use <a href="#ref-1">[1]</a>, not the order of the list <a href="#ref-2">[2]</a>.)
+      html.should contain %(keeps its number <a href="#ref-1">[1]</a>.)
+      html.should contain %(<div id="ref-1"><p>[1] A. Author.)
+      html.should contain %(<div id="ref-2"><p>[2] B. Author, <em>Second Source</em>.)
+      html.should_not contain "Never Cited"
+    end
+
+    it "fails the build on error(), which cite() uses for an unknown key" do
+      env = SSG::TemplateEnv.build(site)
+      expect_raises(Crinja::RuntimeError, "boom") { env.from_string(%({{ error("boom") }})).render }
+      env.from_string(%(ok{{ error("") }})).render.should eq "ok"
+    end
+
     it "writes a valid search index and feeds" do
       docs = JSON.parse(File.read(File.join(outdir, "index.json"))).as_a
-      docs.map(&.["title"].as_s).sort!.should eq ["About", "History of Unix, BSD, GNU, and Linux", "The Unix Philosophy"]
+      docs.map(&.["title"].as_s).sort!.should eq ["About", "Citations", "History of Unix, BSD, GNU, and Linux", "The Unix Philosophy"]
       docs.find! { |d| d["title"] == "The Unix Philosophy" }["content"].as_s.should contain "Henry Spencer"
       xml = File.read(File.join(outdir, "index.xml"))
       xml.should contain "<title>Minima Example</title>"

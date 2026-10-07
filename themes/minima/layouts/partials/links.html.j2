@@ -1,6 +1,6 @@
 {#- Every external link used in the article, extracted from the rendered html. -#}
 {% set external = page.links | selectattr("external") | list %}
-{% if external %}
+{% if external | length > 0 %}
 <div class="links">
   <h2>Links</h2>
   <p>The following external links appear in the article:</p>

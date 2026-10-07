@@ -99,15 +99,19 @@ module SSG
     end
   end
 
-  record Heading, level : Int32, id : String, text : String do
+  # A heading of the rendered content. `number` is its section number
+  # ("2.1.3"), counted from the page's top heading level, with a 0 for a
+  # level the page skipped (h2 straight to h4 gives "1.0.1").
+  record Heading, level : Int32, id : String, text : String, number : String = "" do
     include Crinja::Object
 
     def crinja_attribute(attr : Crinja::Value) : Crinja::Value
       value = case attr.to_string
-              when "level" then level
-              when "id"    then id
-              when "text"  then text
-              else              Crinja::Undefined.new(attr.to_s)
+              when "level"  then level
+              when "id"     then id
+              when "text"   then text
+              when "number" then number
+              else               Crinja::Undefined.new(attr.to_s)
               end
       Crinja::Value.new(value)
     end
@@ -355,9 +359,16 @@ module SSG
 
     # Headings of the html content, in document order, for building a TOC.
     def headings : Array(Heading)
-      content_string("html").scan(HEADING).map do |m|
+      found = content_string("html").scan(HEADING).map do |m|
         text = strip_tags(m[3])
-        Heading.new(m[1].to_i, m[2]? || Site.slugify(text), text)
+        {m[1].to_i, m[2]? || Site.slugify(text), text}
+      end
+      top = found.min_of?(&.[0]) || 1
+      counters = Array(Int32).new(6, 0)
+      found.map do |(level, id, text)|
+        counters[level - 1] += 1
+        counters.fill(0, level..)
+        Heading.new(level, id, text, counters[(top - 1)...level].join('.'))
       end
     end
 

@@ -1,5 +1,6 @@
 {#- Document shell: head, header, main block, footer. -#}
 {%- set p = site.params -%}
+{%- set switch = p.switch | default(["🌚", "🌝"]) -%}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -8,13 +9,34 @@
   <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff">
   <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#262d33">
   <title>{% block title %}{% if page.home %}{{ site.title }}{% if p.subtitle %} - {{ p.subtitle }}{% endif %}{% else %}{{ page.title }} - {{ site.title }}{% endif %}{% endblock %}</title>
-  {% if page.description %}<meta name="description" content="{{ page.description }}">{% endif %}
+  {#- Description: the page's own; else the site's on the home page, and a generated one for taxonomy pages. #}
+  {%- set author = p.author | default({}) %}
+  {%- set description = page.description %}
+  {%- if not description %}
+    {%- if page.home %}{% set description = p.description | default(author.description, true) %}
+    {%- elif page.term %}{% set description = (page.taxonomy | title) ~ ": " ~ page.title ~ ". Articles on " ~ site.title ~ "." %}
+    {%- elif page.taxonomy %}{% set description = "All " ~ page.taxonomy ~ " on " ~ site.title ~ "." %}
+    {%- endif %}
+  {%- endif %}
+  {%- if page.home %}{% set og_title = site.title %}{% else %}{% set og_title = page.title %}{% endif %}
+  {#- No indexing for the 404 page and for the taxonomies listed in params.noindex. #}
+  {%- set noindex = page.layout == "404" %}
+  {%- if page.taxonomy and p.noindex | default([]) | select("equalto", page.taxonomy) | list | length > 0 %}{% set noindex = true %}{% endif %}
+  {% if description %}<meta name="description" content="{{ description | trim | escape }}">{% endif %}
+  {% if noindex %}<meta name="robots" content="noindex, follow">{% endif %}
+  {% if page.layout != "404" %}<link rel="canonical" href="{{ page.permalink }}">{% endif %}
+  <meta property="og:site_name" content="{{ site.title | escape }}">
+  <meta property="og:title" content="{{ og_title | escape }}">
+  <meta property="og:url" content="{{ page.permalink }}">
+  <meta property="og:type" content="{% if page.kind == "page" and page.date %}article{% else %}website{% endif %}">
+  {% if description %}<meta property="og:description" content="{{ description | trim | escape }}">{% endif %}
+  <meta name="twitter:card" content="summary">
   <link rel="alternate" type="application/rss+xml" href="/index.xml" title="{{ site.title }}">
   <link rel="shortcut icon" href="/favicon.ico" type="image/x-icon">
   <link rel="stylesheet" href="/css/minima.css">
   {%- set comment = p.comment | default({}) %}
   <script>
-    window.minima = {{ {"theme": p.default_theme | default("light"), "switch": p.switch | default(["🌚", "🌝"]), "selectable": p.selectable | default(true), "comment": comment.provider | default("")} | json }};
+    window.minima = {{ {"theme": p.default_theme | default("light"), "switch": switch, "selectable": p.selectable | default(true), "comment": comment.provider | default("")} | json }};
     // Pick the colour scheme before first paint to avoid a flash.
     (function () {
       var light = window.minima.theme === "system" ? "light" : window.minima.theme;
@@ -38,8 +60,10 @@
           <li class="ml-2 mr-2"><a href="{{ item.url }}">{{ item.name }}</a></li>
           {% endfor %}
           <li class="ml-2 mr-2">|</li>
-          <li class="ml-2 mr-2"><div id="theme-switch" class="cursor-pointer"></div></li>
+          <li class="ml-2 mr-2"><div id="theme-switch" class="cursor-pointer">{{ switch[1] }}</div></li>
         </ul>
+        {#- Third column (the language list in the Hugo theme); keeps the menu centred when there is no brand. #}
+        <div></div>
       </nav>
     </div>
   </header>

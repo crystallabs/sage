@@ -1,10 +1,18 @@
 {% extends "base.html.j2" %}
+{#- schema.org WebSite, for search engines. -#}
+{% block head %}
+{% set site_author = site.params.author | default({}) %}
+{% set site_description = site.params.description | default(site_author.description, true) %}
+<script type="application/ld+json">
+{"@context": "https://schema.org", "@type": "WebSite", "name": {{ site.title | json }}, "url": {{ page.permalink | json }}{% if site_description %}, "description": {{ site_description | trim | json | replace("</", "<\\/") }}{% endif %}}
+</script>
+{% endblock %}
 {% block main %}
 {% set p = site.params %}
 {% set author = p.author | default({}) %}
 <main class="container mx-auto">
   <div class="text-center">
-    {% if p.greet %}<h2 class="mt-8 text-3xl font-bold">{{ p.greet }}</h2>{% endif %}
+    {% if p.greet %}<h1 class="mt-8 text-3xl font-bold">{{ p.greet }}</h1>{% endif %}
     {% if author.status %}<p class="mt-0 mb-0">{{ author.status }}</p>{% endif %}
     {% if author.description %}<div class="mt-3 mb-3 home-intro">{{ author.description | markdown }}</div>{% endif %}
   </div>
@@ -14,7 +22,8 @@
   {% if series %}
     {% set descriptions = site.data.series | default({}) %}
     {% for term in series.pages %}
-    <h3 class="mt-6 mb-0 text-2xl font-semibold">{{ term.term | title }}</h3>
+    {#- A series with its own page (content/series/<term>/index.md) is shown under that page's title. #}
+    <h3 class="mt-6 mb-0 text-2xl font-semibold">{% if term.title != term.term %}{{ term.title }}{% else %}{{ term.term | title }}{% endif %}</h3>
     {% if descriptions[term.term] %}<p>{{ descriptions[term.term] }}</p>{% endif %}
     {% for item in term.pages | sort(attribute="weight") %}{% include "partials/item.html.j2" %}{% endfor %}
     {% endfor %}

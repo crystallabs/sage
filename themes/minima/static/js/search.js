@@ -15,7 +15,7 @@
     if (!fuse) return;
     var html = "";
     fuse.search(input.value.trim()).forEach(function (hit) {
-      html += '<li><a href="' + hit.item.permalink + '">' + hit.item.title + "</a></li>";
+      html += '<li><a href="' + (hit.item.url || hit.item.permalink) + '">' + hit.item.title + "</a></li>";
     });
     result.innerHTML = html;
   }

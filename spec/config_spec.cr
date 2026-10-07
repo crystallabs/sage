@@ -15,6 +15,34 @@ describe SSG::Config do
     String.new(md.call(%(<b>x</b>).to_slice, ctx)).should contain "<!-- raw HTML omitted -->"
   end
 
+  it "takes a heading's id from a trailing {#id}, else from its text" do
+    md = SSG::Processors::Markdown.new
+    site = load_fixture("classify")
+    ctx = SSG::Chain::Context.new(site, SSG::TemplateEnv.build(site))
+    html = String.new(md.call("## The *Intro* {#intro}\n\n## Plain one\n\n### Again {#intro}\n".to_slice, ctx))
+    html.should contain %(<h2 id="intro">The <em>Intro</em></h2>)
+    html.should contain %(<h2 id="plain-one">Plain one</h2>)
+    html.should contain %(<h3 id="intro-2">Again</h3>)
+  end
+
+  it "keeps inline markup between an ampersand and a later semicolon" do
+    md = SSG::Processors::Markdown.new
+    site = load_fixture("classify")
+    ctx = SSG::Chain::Context.new(site, SSG::TemplateEnv.build(site))
+    html = String.new(md.call("AT&T and [a link](/x) and `code`; then &mdash; &#65; &amp; &nosuch; R&D\n".to_slice, ctx))
+    html.should contain %(AT&amp;T and <a href="/x">a link</a> and <code>code</code>; then — A &amp; &amp;nosuch; R&amp;D)
+  end
+
+  it "does not autolink a url that is already the text of an html link" do
+    data = SSG::FrontMatter::Data.new
+    data["markdown"] = YAML.parse("gfm: true\nautolink: true")
+    md = SSG::Processors::Markdown.new(SSG::Config.new("/x", data).markdown)
+    site = load_fixture("classify")
+    ctx = SSG::Chain::Context.new(site, SSG::TemplateEnv.build(site))
+    html = String.new(md.call(%(At <a href="https://e.org/">https://e.org/</a>. Also https://f.org/x and [https://g.org/](/g).\n).to_slice, ctx))
+    html.should contain %(At <a href="https://e.org/">https://e.org/</a>. Also <a href="https://f.org/x">https://f.org/x</a> and <a href="/g">https://g.org/</a>.)
+  end
+
   it "turns highlighting off or picks a theme" do
     data = SSG::FrontMatter::Data.new
     data["markdown"] = YAML.parse("highlight: false")

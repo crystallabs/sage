@@ -68,12 +68,86 @@ module SSG
     # Files under the output directory that the plan does not produce.
     # Absolute paths, sorted. Needs no build.
     def orphans : Array(String)
-      planned = plan.map(&.rel).to_set
-      return [] of String unless Dir.exists?(@output_dir)
-      Dir.glob(File.join(@output_dir, "**", "*"), match: File::MatchOptions::DotFiles)
-        .select { |p| File.file?(p) }
-        .reject { |p| planned.includes?(p[(@output_dir.size + 1)..]) }
-        .sort!
+      diff.extra.map { |rel| File.join(@output_dir, rel) }
+    end
+
+    # The plan against the files under a directory. *missing* are planned
+    # but not there, *extra* are there but not planned, both sorted by
+    # path. *renamed* pairs an extra file with a missing job whose paths
+    # differ only in url spelling (see `url_key`); each stays in its own
+    # list as well, so the two lists are the plain set differences. *dir*
+    # is the directory that was compared.
+    record Diff, dir : String, missing : Array(Job), extra : Array(String), renamed : Array({String, Job}) do
+      def empty? : Bool
+        missing.empty? && extra.empty?
+      end
+    end
+
+    # Compares the plan with the files under *dir* (the output directory
+    # by default) without rendering anything. *ignore* holds globs that
+    # drop files from both sides: a pattern without `/` must match one
+    # path component, with `/` the whole relative path, and ending in `/`
+    # a directory prefix. *strict* turns off the pairing of renames.
+    def diff(dir : String = @output_dir, ignore : Array(String) = [] of String, strict : Bool = false) : Diff
+      dir = dir.rstrip('/') unless dir == "/"
+      planned = plan.reject { |j| ignored?(j.rel, ignore) }.sort_by!(&.rel)
+      present = Set(String).new
+      walk(dir, "") { |rel| present << rel unless ignored?(rel, ignore) }
+      missing = planned.reject { |j| present.includes?(j.rel) }
+      rels = planned.map(&.rel).to_set
+      extra = present.reject { |r| rels.includes?(r) }.sort!
+      renamed = [] of {String, Job}
+      unless strict
+        by_key = {} of String => Job
+        missing.each { |j| by_key[url_key(j.rel)] ||= j }
+        extra.each do |r|
+          if j = by_key.delete(url_key(r))
+            renamed << {r, j}
+          end
+        end
+      end
+      Diff.new(dir, missing, extra, renamed)
+    end
+
+    # Two output paths serve the same url when they differ only in case or
+    # in how an html page is spelled: `foo/index.html` and `foo.html` both
+    # answer `/foo`.
+    private def url_key(rel : String) : String
+      k = rel.downcase
+      if k == "index.html" || k.ends_with?("/index.html")
+        k[0...-"index.html".size].rstrip('/')
+      elsif k == "index.htm" || k.ends_with?("/index.htm")
+        k[0...-"index.htm".size].rstrip('/')
+      else
+        k.rchop(".html").rchop(".htm")
+      end
+    end
+
+    # Yields the path of every file under *dir*, hidden ones included,
+    # relative to it. Not a glob, so that *dir* may contain `[` or `*`.
+    private def walk(dir : String, rel : String, &block : String ->)
+      return unless Dir.exists?(dir)
+      Dir.each_child(dir) do |name|
+        path = File.join(dir, name)
+        child = rel.empty? ? name : File.join(rel, name)
+        if File.directory?(path)
+          walk(path, child, &block)
+        elsif File.file?(path)
+          yield child
+        end
+      end
+    end
+
+    private def ignored?(rel : String, patterns : Array(String)) : Bool
+      patterns.any? do |pat|
+        if pat.ends_with?('/')
+          rel.starts_with?(pat)
+        elsif pat.includes?('/')
+          File.match?(pat, rel)
+        else
+          rel.split('/').any? { |c| File.match?(pat, c) }
+        end
+      end
     end
 
     # ---- layouts ---------------------------------------------------------
@@ -141,7 +215,7 @@ module SSG
       if allowed = page.outputs
         formats = formats.select { |f| allowed.includes?(f) }.to_set
       end
-      origin = page.variants.first?.try(&.source_path) || page.to_s
+      origin = page.variants.first?.try(&.source_path) || "#{page.kind} #{page.url}"
       has_variant = page.variants.map(&.format).to_set
 
       formats.each do |format|

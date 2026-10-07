@@ -1,4 +1,16 @@
 {% extends "base.html.j2" %}
+{#- Publication dates for search engines: OpenGraph article times and a schema.org Article. -#}
+{% block head %}
+{% if page.date %}
+{% set published = page.date | date("%Y-%m-%dT%H:%M:%S%:z") %}
+{% set modified = page.lastmod | default(page.date) | date("%Y-%m-%dT%H:%M:%S%:z") %}
+<meta property="article:published_time" content="{{ published }}">
+<meta property="article:modified_time" content="{{ modified }}">
+<script type="application/ld+json">
+{"@context": "https://schema.org", "@type": "Article", "headline": {{ page.title | json | replace("</", "<\\/") }}, "url": {{ page.permalink | json }}, "datePublished": "{{ published }}", "dateModified": "{{ modified }}"{% if site.params.author.name %}, "author": {"@type": "Person", "name": {{ site.params.author.name | json }}}{% endif %}{% if site.params.publisher %}, "publisher": {"@type": "Organization", "name": {{ site.params.publisher | json }}}{% endif %}{% if page.description %}, "description": {{ page.description | json | replace("</", "<\\/") }}{% endif %}}
+</script>
+{% endif %}
+{% endblock %}
 {% block main %}
 {% set p = site.params %}
 <div class="container mx-auto">
@@ -6,13 +18,13 @@
   <div class="mb-3 text-sm flex justify-between">
     <div>
       {% if p.display_date and page.date %}
-      First published &mdash; {{ page.date | date("%b %d, %Y") }}<br>
-      {% if page.lastmod %}Last updated &mdash; {{ page.lastmod | date("%b %d, %Y") }}<br>{% endif %}
+      First published &mdash; <time datetime="{{ page.date | date("%Y-%m-%d") }}">{{ page.date | date("%b %d, %Y") }}</time><br>
+      {% if page.lastmod %}Last updated &mdash; <time datetime="{{ page.lastmod | date("%Y-%m-%d") }}">{{ page.lastmod | date("%b %d, %Y") }}</time><br>{% endif %}
       {% endif %}
       {% if page.draft %}<span class="ml-3 tag">DRAFT</span>{% endif %}
     </div>
     {% set tags = page.terms_for("tags") %}
-    {% if tags %}
+    {% if tags | length > 0 %}
     <div>{% for t in tags %}<a class="ml-1" href="{{ t.url }}">#{{ t.term }}</a>{% endfor %}</div>
     {% endif %}
   </div>

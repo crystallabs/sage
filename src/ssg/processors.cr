@@ -35,13 +35,23 @@ module SSG
         call_text(input, ctx) { |s| add_heading_ids(Markd.to_html(s, @options, formatter: @formatter)) }
       end
 
+      # Trailing `{#id}` in a heading, as in Hugo: `## Title {#id}`.
+      EXPLICIT_ID = /\s*\{#([A-Za-z][\w:.-]*)\}\s*\z/
+
       # Give headings an id (as Hugo does) so that they can be linked and
-      # listed in a table of contents. Ids are made unique within the page.
+      # listed in a table of contents. The id is the heading's own `{#id}`
+      # when it has one, else derived from its text. Ids are made unique
+      # within the page.
       private def add_heading_ids(html : String) : String
         seen = {} of String => Int32
         html.gsub(/<h([1-6])>(.*?)<\/h\1>/m) do
           level, inner = $1, $2
-          base = Site.slugify(HTML.unescape(inner.gsub(/<[^>]*>/, "")))
+          if m = EXPLICIT_ID.match(inner)
+            inner = m.pre_match
+            base = m[1]
+          else
+            base = Site.slugify(HTML.unescape(inner.gsub(/<[^>]*>/, "")))
+          end
           base = "heading" if base.empty?
           n = (seen[base] = (seen[base]? || 0) + 1)
           id = n == 1 ? base : "#{base}-#{n}"

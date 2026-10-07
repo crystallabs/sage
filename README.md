@@ -10,23 +10,82 @@ formats are derived from filename extension chains rather than configured.
     ssg build [-s DIR] [-b URL] [--drafts] [--clean] [--touch]
     ssg serve [-s DIR] [-p PORT] [-b URL] [--drafts]   # rebuilds and reloads the browser on change
     ssg orphans [-s DIR] [-0]
+    ssg diff [-s DIR] [--missing | --extra] [--ignore GLOB]... [--strict] [-l] [-0] [DIR]
+    ssg pages [-s DIR] [--drafts | --published | --implicit] [-l] [-0] [FILTER...]   # list pages by front matter
     ssg hugo-convert [-w] FILE...
 
 `-b URL` overrides `base_url` for one build; `serve` defaults it to the
 local address.
 
 `ssg orphans` prints every file in the output directory that the current
-site would not produce, one absolute path per line, or NUL-terminated
-with `-0`. The set of output paths is computed from the site graph, so
-nothing is rendered or written:
+site would not produce, one path per line relative to the current
+directory, or NUL-terminated with `-0`. The set of output paths is
+computed from the site graph, so nothing is rendered or written:
 
     ssg orphans -0 | xargs -0 rm --
+
+`ssg diff DIR` compares that set with the files under DIR, in the same
+way, and prints one line per difference, ordered by path relative to
+DIR. `+ path<TAB>origin` is a file the site would produce that DIR
+lacks, with the source file (relative to the current directory), `list
+/tags/foo/` or `alias /old/ of blog/new` that produces it; `- path` is
+a file under DIR that the site would not produce; and `~ old<TAB>new`
+pairs one of each that differ only in url spelling, that is in case or
+in `foo.html` against `foo/index.html`. The exit status is 1 when
+anything was listed, so a build of the same site by other software can
+be kept as a fixture and checked against:
+
+    ssg diff ../old-site/public --ignore '*.bak' --ignore resources/
+
+`--ignore GLOB` leaves matching files out on both sides and may repeat:
+a pattern without `/` must match one path component (`*.bak`, `gen`),
+with `/` the whole path relative to DIR (`gen/*.bak`), and ending in
+`/` a directory prefix. `--strict` reports renames as a plain `+` and
+`-`. `--missing` and `--extra` print one side alone, as paths relative
+to the current directory, so that `diff --extra -0 DIR | xargs -0 rm
+--` works like `orphans`; `-l` drops the origin column. Without DIR the
+output directory is compared, which shows what the next build would
+create and what it would leave behind. `orphans` is `diff --extra -l`
+of the output directory, `--ignore` included, except that it always
+exits 0.
 
 A build rewrites only output files whose content changed, so unchanged
 files keep their mtime. `--touch` gives unchanged files a fresh mtime as
 well, for the same purpose with plain shell tools:
 
     touch .stamp && ssg build --touch && find public -type f ! -newer .stamp
+
+`ssg pages` lists the pages that have a source file, drafts included
+(synthesized sections and taxonomy pages have none), one
+`path<TAB>title` line each, ordered by path. Paths are relative to the
+current directory; `-l` prints them alone, and `-0` does so
+NUL-terminated. Like `orphans`, it reads the site graph and renders
+nothing. Each argument is a filter on the page's front matter, cascaded
+values included, and all of them must match:
+
+    key=value     the key equals value, or is a list that contains it
+    key!=value    the opposite, so pages without the key match too
+    key           the key is set
+    key=          the key is not set: absent, null, "" or []
+
+Strings compare exactly. Booleans and numbers compare as YAML reads
+them, so `draft=true` also finds `draft: yes`. A date matches any prefix
+of its RFC 3339 form in UTC: `date=2024`, `date=2024-03-01`. A malformed
+filter is an error, and so is a key that is neither reserved nor set on
+any page, which is how a typo shows up. `--drafts` lists only the drafts
+(`draft=true`) and `--published` only the rest (`draft!=true`); filters
+narrow either further:
+
+    ssg pages --drafts
+    ssg pages --published series=unix tags=tutorial
+    ssg pages --drafts -0 tags=unix | xargs -0 grep -l TODO
+
+`--implicit` lists the other kind of page instead: those a build creates
+without a source file, which are implicit sections, taxonomy indexes and
+terms. They are printed as `url<TAB>title`, ordered by url, and drafts are
+left out as in a build, since drafts decide which of these pages exist:
+
+    ssg pages --implicit
 
 A site is a directory with `config.yml`, `content/`, `layouts/` and
 optionally `static/` and `data/`. Output goes to `public/`.
@@ -225,7 +284,8 @@ rendered content, unique by url, each with `url`, `text` and `external`.
 `site.data`: contents of the data directory. `site.page(ref)` finds a
 page by content path, or by slug or directory name when given a bare name.
 
-Extra filters: `date(format)`, `markdown`, `absurl`, `slugify`, `json`
+Extra filters: `date(format)`, `markdown` (with the `markdown:` options from
+`config.yml`), `absurl`, `slugify`, `json`
 (plain JSON, unlike Crinja's html-escaping `tojson`).
 Extra functions: `ref(content_path)`.
 
@@ -272,6 +332,9 @@ Macros see `page` and `site`. Two Crinja quirks to know: `a or b` yields a
 boolean, so use `a | default(b, true)` for fallbacks; and there is no inline
 `x if c else y`, so use `{% if %}` blocks.
 
+`error(message)` fails the build with the message, for a shortcode that is
+handed something it cannot use, such as a key that names nothing.
+
 For anything a shortcode needs to hand to the layout, there is a per-page
 store: `page.store.set(key, value)`, `page.store.append(key, value)`,
 `page.store.get(key)`. Content renders before layouts, so the layout sees
@@ -290,9 +353,14 @@ directory: `data/series.yml` is `site.data.series`.
 
 ## Headings
 
-The Markdown processor gives every heading an `id` derived from its text,
-unique within the page. `page.headings` lists them in order with `level`,
-`id` and `text`, which is all a table of contents needs.
+The Markdown processor gives every heading an `id`, unique within the
+page: the heading's own when it ends in one, as in `## Title {#intro}`
+(Hugo's syntax), else derived from its text. `page.headings` lists them
+in order with `level`, `id`, `text` and `number`, which is all a table of
+contents needs. `number` is the section number, `2.1.3` for the third
+h4 under the first h3 under the second h2, counted from the page's
+highest heading level; a skipped level counts as 0, so h2 straight to h4
+gives `1.0.1`.
 
 ## Sorting
 

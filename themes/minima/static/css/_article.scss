@@ -1,6 +1,7 @@
 // Article body (.md) and its boxes.
+h1 { text-align: center; }
 .md {
-  h1 { font-size: 2.25rem; font-weight: bold; margin: 1rem 0 .75rem; text-align: center; }
+  h1 { font-size: 2.25rem; font-weight: bold; margin: 1rem 0 .75rem; }
   h2 { font-size: 2rem; font-weight: bold; margin: 1rem 0 .75rem; }
   h3 { font-size: 1.6rem; font-weight: bold; margin: 1rem 0 .75rem; }
   h4 { font-size: 1.25rem; font-weight: bold; margin: 1rem 0 .75rem; }
@@ -20,6 +21,7 @@
   blockquote.text { font-style: normal; font-family: var(--font-mono); }
   blockquote p { margin: .45rem 0; line-height: 1.5; font-size: .95rem; }
   blockquote cite { display: block; font-size: .85rem; margin-bottom: .45rem; }
+  blockquote pre, blockquote code { font-style: normal; }
   table { border-collapse: collapse; border-spacing: 0; display: block; max-width: 100%; margin: 1em 0; overflow: auto; }
   table thead { border-top: 2px solid var(--text); border-bottom: 1px solid var(--text); }
   table tbody { border-bottom: 2px solid var(--text); }
@@ -40,6 +42,7 @@
   .series h2, .md .links h2, .md .toc h2 { font-size: 1.25rem; margin: .5rem 0; }
   .series h4 { font-size: 1rem; margin: .5rem 0 .25rem; }
   .toc ul { list-style: none; padding-inline-start: 0; }
+  .toc .number { display: inline-block; min-width: 2em; margin-right: .25em; text-align: right; font-variant-numeric: tabular-nums; }
   .toc li.level-3 { padding-left: 1.25rem; }
   .toc li.level-4 { padding-left: 2.5rem; }
   .toc li.level-5, .md .toc li.level-6 { padding-left: 3.75rem; }
