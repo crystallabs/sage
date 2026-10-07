@@ -1,9 +1,9 @@
 require "option_parser"
 
-module SSG
+module Sage
   module CLI
     USAGE = <<-TEXT
-      Usage: ssg <command> [options]
+      Usage: sage <command> [options]
 
       Commands:
         init DIR Create a new site skeleton in DIR
@@ -85,14 +85,14 @@ module SSG
       when "hugo-convert"
         abort "hugo-convert: no files given" if files.empty?
         HugoConvert.run(files, write)
-      when "version" then puts "ssg #{VERSION}"
+      when "version" then puts "sage #{VERSION}"
       else                abort parser.to_s
       end
     rescue e : Error
       abort "error: #{e.message}"
     end
 
-    # `run`, but exiting quietly when `ssg pages | head` closes stdout early.
+    # `run`, but exiting quietly when `sage pages | head` closes stdout early.
     def self.main(argv = ARGV)
       run(argv)
     rescue e : IO::Error

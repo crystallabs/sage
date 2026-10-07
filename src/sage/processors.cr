@@ -3,7 +3,7 @@ require "crinja"
 require "html"
 require "sass"
 
-module SSG
+module Sage
   module Processors
     class Markdown < Chain::Processor
       getter formatter : Tartrazine::Html?

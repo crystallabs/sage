@@ -1,7 +1,7 @@
 require "crinja"
 require "html"
 
-module SSG
+module Sage
   # A file that belongs to a page directory and is emitted next to the page.
   class Resource
     include Crinja::Object

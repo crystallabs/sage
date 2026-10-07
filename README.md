@@ -1,4 +1,4 @@
-# ssg
+# sage
 
 A reasonable static site generator. Content is Markdown, templates are
 Jinja2 by default, and output formats are derived from filename extension
@@ -7,26 +7,26 @@ chains rather than configured.
 ## Usage
 
 ```sh
-ssg init DIR                               # a minimal site that builds
-ssg build [-s DIR] [-b URL] [--drafts] [--clean] [--touch]
-ssg serve [-s DIR] [-p PORT] [-b URL] [--drafts]   # rebuilds and reloads the browser on change
-ssg orphans [-s DIR] [-0]   # shows orphaned output files with no source
-ssg diff [-s DIR] [--missing | --extra] [--ignore GLOB]... [--strict] [-l] [-0] [DIR]
-ssg pages [-s DIR] [--drafts | --published | --implicit] [-l] [-0] [FILTER...]   # list pages by front matter
-ssg hugo-convert [-w] FILE...
+sage init DIR                               # a minimal site that builds
+sage build [-s DIR] [-b URL] [--drafts] [--clean] [--touch]
+sage serve [-s DIR] [-p PORT] [-b URL] [--drafts]   # rebuilds and reloads the browser on change
+sage orphans [-s DIR] [-0]   # shows orphaned output files with no source
+sage diff [-s DIR] [--missing | --extra] [--ignore GLOB]... [--strict] [-l] [-0] [DIR]
+sage pages [-s DIR] [--drafts | --published | --implicit] [-l] [-0] [FILTER...]   # list pages by front matter
+sage hugo-convert [-w] FILE...
 ```
 
 `-b URL` overrides `base_url` for one build; `serve` defaults it to the
 local address.
 
-`ssg orphans` prints every file in the output directory that the current
+`sage orphans` prints every file in the output directory that the current
 site would not produce, one path per line relative to the current
 directory, or NUL-terminated with `-0`. The set of output paths is
 computed from the site graph, so nothing is rendered or written:
 
-    ssg orphans -0 | xargs -0 rm --
+    sage orphans -0 | xargs -0 rm --
 
-`ssg diff DIR` compares that set with the files under DIR, in the same
+`sage diff DIR` compares that set with the files under DIR, in the same
 way, and prints one line per difference, ordered by path relative to
 DIR. In the output, `+ <path> <origin>` is a file the site would produce that DIR
 lacks, with the source file (relative to the current directory), `list
@@ -38,7 +38,7 @@ anything was listed, so a build of the same site by other software can
 be kept as a fixture and checked against:
 
 ```sh
-ssg diff ../old-site/public --ignore '*.bak' --ignore resources/
+sage diff ../old-site/public --ignore '*.bak' --ignore resources/
 ```
 
 `--ignore GLOB` leaves matching files out on both sides and may repeat:
@@ -57,9 +57,9 @@ A build rewrites only output files whose content changed, so unchanged
 files keep their mtime. `--touch` gives unchanged files a fresh mtime as
 well, for the same purpose with plain shell tools:
 
-    touch .stamp && ssg build --touch && find public -type f ! -newer .stamp
+    touch .stamp && sage build --touch && find public -type f ! -newer .stamp
 
-`ssg pages` lists the pages that have a source file, drafts included
+`sage pages` lists the pages that have a source file, drafts included
 (synthesized sections and taxonomy pages have none), one
 `<path> <title>` line each, ordered by path. Paths are relative to the
 current directory; `-l` prints them alone, and `-0` does so
@@ -80,16 +80,16 @@ any page, which is how a typo shows up. `--drafts` lists only the drafts
 (`draft=true`) and `--published` only the rest (`draft!=true`); filters
 narrow either further:
 
-    ssg pages --drafts
-    ssg pages --published series=unix tags=tutorial
-    ssg pages --drafts -0 tags=unix | xargs -0 grep -l TODO
+    sage pages --drafts
+    sage pages --published series=unix tags=tutorial
+    sage pages --drafts -0 tags=unix | xargs -0 grep -l TODO
 
 `--implicit` lists the other kind of page instead: those a build creates
 without a source file, which are implicit sections, taxonomy indexes and
 terms. They are printed as `<url> <title>`, ordered by url, and drafts are
 left out as in a build, since drafts decide which of these pages exist:
 
-    ssg pages --implicit
+    sage pages --implicit
 
 A site is a directory with `config.yml`, `content/`, `layouts/` and
 optionally `static/` and `data/`. Output goes to `public/`.
@@ -355,7 +355,7 @@ store: `page.store.set(key, value)`, `page.store.append(key, value)`,
 what the content wrote. Links and headings need no store: `page.links` and
 `page.headings` are extracted from the rendered html.
 
-`ssg hugo-convert FILE...` translates Hugo's `{{< name args >}}` and
+`sage hugo-convert FILE...` translates Hugo's `{{< name args >}}` and
 paired `{{< name >}}...{{< /name >}}` calls into the above, once, for
 existing content. With `-w` it replaces each `x.md` by the converted
 `x.md.j2`.
@@ -391,6 +391,6 @@ Native libraries: libyaml, libxml2, openssl and libsass (`libsass-dev`).
 If your system lacks the unversioned `.so` symlinks, install the `-dev`
 packages, or point the linker at local symlinks:
 
-    crystal build src/main.cr -o bin/ssg --link-flags "-L$PWD/.link"
+    crystal build src/main.cr -o bin/sage --link-flags "-L$PWD/.link"
 
 Tests: `crystal spec`.

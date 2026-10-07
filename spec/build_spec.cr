@@ -1,8 +1,8 @@
 require "./spec_helper"
 
-describe SSG::Builder do
+describe Sage::Builder do
   describe "classify fixture" do
-    site = SSG::Builder.build(File.join(FIXTURES, "classify"), clean: true, log: IO::Memory.new)
+    site = Sage::Builder.build(File.join(FIXTURES, "classify"), clean: true, log: IO::Memory.new)
     outdir = site.config.output_dir
 
     it "writes pages, resources and processed resources next to each other" do
@@ -105,22 +105,22 @@ describe SSG::Builder do
   describe "rebuilds" do
     root = File.join(FIXTURES, "classify")
     it "leaves unchanged files alone unless asked to touch them" do
-      site = SSG::Builder.build(root, clean: true, log: IO::Memory.new)
+      site = Sage::Builder.build(root, clean: true, log: IO::Memory.new)
       path = File.join(site.config.output_dir, "about/index.html")
       before = File.info(path).modification_time
       sleep 20.milliseconds
       log = IO::Memory.new
-      SSG::Builder.build(root, log: log)
+      Sage::Builder.build(root, log: log)
       log.to_s.should match(/: 0 written, \d+ unchanged/)
       File.info(path).modification_time.should eq before
-      SSG::Builder.build(root, touch: true, log: IO::Memory.new)
+      Sage::Builder.build(root, touch: true, log: IO::Memory.new)
       File.info(path).modification_time.should be > before
     end
 
     it "lists orphaned output files without building" do
-      site = SSG::Builder.build(root, clean: true, log: IO::Memory.new)
+      site = Sage::Builder.build(root, clean: true, log: IO::Memory.new)
       outdir = site.config.output_dir
-      SSG::Builder.orphans(root).should eq [] of String
+      Sage::Builder.orphans(root).should eq [] of String
 
       stray = File.join(outdir, "old/leftover.html")
       hidden = File.join(outdir, ".stale")
@@ -130,66 +130,66 @@ describe SSG::Builder do
       removed = File.join(outdir, "about/index.html")
       File.delete(removed)
 
-      list = SSG::Builder.orphans(root)
+      list = Sage::Builder.orphans(root)
       list.should eq [hidden, stray]
       File.exists?(removed).should be_false # nothing was built
 
-      d = SSG::Builder.diff(root)
+      d = Sage::Builder.diff(root)
       d.dir.should eq outdir
       io = IO::Memory.new
-      SSG::Builder.print_diff(d, io, :extra, true, base: outdir).should be_true
+      Sage::Builder.print_diff(d, io, :extra, true, base: outdir).should be_true
       io.to_s.should eq ".stale\nold/leftover.html\n"
       io = IO::Memory.new
-      SSG::Builder.print_diff(d, io, :extra, true, nul: true, base: outdir)
+      Sage::Builder.print_diff(d, io, :extra, true, nul: true, base: outdir)
       io.to_s.should eq ".stale\0old/leftover.html\0"
     end
 
     it "compares the plan with another directory without building" do
-      SSG::Builder.build(root, clean: true, log: IO::Memory.new)
+      Sage::Builder.build(root, clean: true, log: IO::Memory.new)
       other = File.join(FIXTURES, "..", "out", "diff[*]") # no glob may choke on the name
       FileUtils.rm_rf(other)
-      FileUtils.cp_r(SSG::Config.load(root).output_dir, other)
+      FileUtils.cp_r(Sage::Config.load(root).output_dir, other)
       File.rename(File.join(other, "about/index.html"), File.join(other, "About.html"))
       File.delete(File.join(other, "docs/index.html"))
       File.write(File.join(other, "stray.html"), "x")
       Dir.mkdir_p(File.join(other, "gen"))
       File.write(File.join(other, "gen/x.bak"), "x")
 
-      SSG::Builder.diff(root).empty?.should be_true # the output directory itself
+      Sage::Builder.diff(root).empty?.should be_true # the output directory itself
 
-      d = SSG::Builder.diff(root, other)
+      d = Sage::Builder.diff(root, other)
       d.dir.should eq other
       d.extra.should eq ["About.html", "gen/x.bak", "stray.html"]
       d.missing.map(&.rel).should eq ["about/index.html", "docs/index.html"]
       d.renamed.map { |r, j| {r, j.rel} }.should eq [{"About.html", "about/index.html"}]
       File.exists?(File.join(other, "docs/index.html")).should be_false # nothing was built
 
-      SSG::Builder.diff(root, other, strict: true).renamed.should be_empty
-      SSG::Builder.diff(root, other, ["*.bak"]).extra.should eq ["About.html", "stray.html"]
-      SSG::Builder.diff(root, other, ["gen"]).extra.should eq ["About.html", "stray.html"]
-      SSG::Builder.diff(root, other, ["gen/"]).extra.should eq ["About.html", "stray.html"]
-      SSG::Builder.diff(root, other, ["gen/*.bak", "docs/index.html"]).missing.map(&.rel).should eq ["about/index.html"]
+      Sage::Builder.diff(root, other, strict: true).renamed.should be_empty
+      Sage::Builder.diff(root, other, ["*.bak"]).extra.should eq ["About.html", "stray.html"]
+      Sage::Builder.diff(root, other, ["gen"]).extra.should eq ["About.html", "stray.html"]
+      Sage::Builder.diff(root, other, ["gen/"]).extra.should eq ["About.html", "stray.html"]
+      Sage::Builder.diff(root, other, ["gen/*.bak", "docs/index.html"]).missing.map(&.rel).should eq ["about/index.html"]
 
       io = IO::Memory.new
-      SSG::Builder.print_diff(d, io, base: root).should be_true
+      Sage::Builder.print_diff(d, io, base: root).should be_true
       io.to_s.should eq "~ About.html\tabout/index.html\n+ docs/index.html\tlist /docs/\n- gen/x.bak\n- stray.html\n"
       io = IO::Memory.new
-      SSG::Builder.print_diff(d, io, :missing, base: File.dirname(other))
+      Sage::Builder.print_diff(d, io, :missing, base: File.dirname(other))
       io.to_s.should eq "diff[*]/about/index.html\t../fixtures/classify/content/about.md\ndiff[*]/docs/index.html\tlist /docs/\n"
       io = IO::Memory.new
-      SSG::Builder.print_diff(d, io, :missing, true, base: other)
+      Sage::Builder.print_diff(d, io, :missing, true, base: other)
       io.to_s.should eq "about/index.html\ndocs/index.html\n"
     end
 
     it "overrides the base url" do
-      site = SSG::Builder.build(root, base_url: "https://preview.test", log: IO::Memory.new)
+      site = Sage::Builder.build(root, base_url: "https://preview.test", log: IO::Memory.new)
       site.config.base_url.should eq "https://preview.test/"
       site.absolute_url("/x/").should eq "https://preview.test/x/"
     end
   end
 
   describe "example site" do
-    site = SSG::Builder.build(EXAMPLE, clean: true, log: IO::Memory.new)
+    site = Sage::Builder.build(EXAMPLE, clean: true, log: IO::Memory.new)
     outdir = site.config.output_dir
 
     it "produces the expected files" do
@@ -206,7 +206,7 @@ describe SSG::Builder do
     it "emits the dark highlighting theme under prefers-color-scheme" do
       css = File.read(File.join(outdir, "css/highlight.css"))
       css.should contain "@media (prefers-color-scheme: dark) {"
-      css.should contain SSG::Processors::Markdown.css("github-dark")
+      css.should contain Sage::Processors::Markdown.css("github-dark")
     end
 
     it "uses section layouts and processes .md.j2 before markdown" do
@@ -231,7 +231,7 @@ describe SSG::Builder do
     end
   end
   describe "minima theme example site" do
-    site = SSG::Builder.build(MINIMA, clean: true, log: IO::Memory.new)
+    site = Sage::Builder.build(MINIMA, clean: true, log: IO::Memory.new)
     outdir = site.config.output_dir
 
     it "produces the expected files" do
@@ -272,7 +272,7 @@ describe SSG::Builder do
     end
 
     it "fails the build on error(), which cite() uses for an unknown key" do
-      env = SSG::TemplateEnv.build(site)
+      env = Sage::TemplateEnv.build(site)
       expect_raises(Crinja::RuntimeError, "boom") { env.from_string(%({{ error("boom") }})).render }
       env.from_string(%(ok{{ error("") }})).render.should eq "ok"
     end

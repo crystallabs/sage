@@ -2,7 +2,7 @@ require "crinja"
 require "yaml"
 require "json"
 
-module SSG
+module Sage
   # Conversions from YAML front matter into native Crinja values, so that
   # `{% for x in page.params.list %}` and friends work as in plain Jinja.
   module Values

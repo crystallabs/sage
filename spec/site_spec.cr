@@ -1,6 +1,6 @@
 require "./spec_helper"
 
-describe SSG::Site do
+describe Sage::Site do
   site = load_fixture("classify")
   home = site.home
 
@@ -109,6 +109,6 @@ describe SSG::Site do
   end
 
   it "rejects two pages that map to the same url" do
-    expect_raises(SSG::Error, /two pages map to \/about\//) { load_fixture("collision") }
+    expect_raises(Sage::Error, /two pages map to \/about\//) { load_fixture("collision") }
   end
 end

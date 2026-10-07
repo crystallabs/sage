@@ -1,5 +1,5 @@
 #!/bin/sh
-# Builds a fully static ssg binary for Linux. Runs inside the
+# Builds a fully static sage binary for Linux. Runs inside the
 # crystallang/crystal:latest-alpine image with the checkout mounted as the
 # working directory; see workflows/ci.yml.
 set -eux
@@ -36,7 +36,7 @@ PC
 pkg-config --static --libs sass
 
 shards install --without-development
-crystal build --release --no-debug --static src/main.cr -o ssg
-file ssg
-file ssg | grep -Eq 'static(ally|-pie) linked'
-./ssg version
+crystal build --release --no-debug --static src/main.cr -o sage
+file sage
+file sage | grep -Eq 'static(ally|-pie) linked'
+./sage version

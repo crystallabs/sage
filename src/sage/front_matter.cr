@@ -1,6 +1,6 @@
 require "yaml"
 
-module SSG
+module Sage
   # YAML front matter delimited by `---` lines at the very start of the file.
   module FrontMatter
     alias Data = Hash(String, YAML::Any)

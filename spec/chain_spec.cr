@@ -1,7 +1,7 @@
 require "./spec_helper"
 
 # Stand-in for a real pdf converter: proves the mechanism without a backend.
-class FakePdf < SSG::Chain::Converter
+class FakePdf < Sage::Chain::Converter
   def from : String
     "html"
   end
@@ -10,13 +10,13 @@ class FakePdf < SSG::Chain::Converter
     "pdf"
   end
 
-  def call(input : Bytes, ctx : SSG::Chain::Context) : Bytes
+  def call(input : Bytes, ctx : Sage::Chain::Context) : Bytes
     ("%PDF-fake\n" + String.new(input)).to_slice
   end
 end
 
-describe SSG::Chain::Registry do
-  registry = SSG::Processors.default_registry.register(FakePdf.new)
+describe Sage::Chain::Registry do
+  registry = Sage::Processors.default_registry.register(FakePdf.new)
 
   # {filename, base, output name, format, steps in run order}
   cases = [
@@ -62,8 +62,8 @@ describe SSG::Chain::Registry do
 
   it "runs steps in order, processors then converters" do
     site = load_fixture("classify")
-    env = SSG::TemplateEnv.build(site)
-    ctx = SSG::Chain::Context.new(site, env, site.home)
+    env = Sage::TemplateEnv.build(site)
+    ctx = Sage::Chain::Context.new(site, env, site.home)
 
     html = registry.process("# {{ site.title }} {{ L(\"u\", \"t\") }}", registry.resolve("x.md.j2"), ctx)
     String.new(html).should contain %(<a href="u">t</a>)

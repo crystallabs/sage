@@ -1,5 +1,5 @@
-module SSG
-  # `ssg init DIR`: a minimal, working site.
+module Sage
+  # `sage init DIR`: a minimal, working site.
   module Init
     FILES = {
       "config.yml" => <<-YAML,
@@ -91,7 +91,7 @@ module SSG
         File.write(path, content)
         STDERR.puts "  #{rel}"
       end
-      STDERR.puts "created #{dir}; next: cd #{dir} && ssg serve"
+      STDERR.puts "created #{dir}; next: cd #{dir} && sage serve"
     end
   end
 end

@@ -31,7 +31,7 @@
 #   Makefile.j2         j2, no format                   -> Makefile
 #
 # Everything above is decided from the filename alone, before reading a byte.
-module SSG
+module Sage
   module Chain
     # What a step receives, besides the content.
     class Context

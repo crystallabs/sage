@@ -1,7 +1,7 @@
 require "crinja"
 require "markd"
 
-module SSG
+module Sage
   # Builds the Crinja environment shared by every template render in a build.
   #
   # Extra filters:   date(format), markdown, absurl, slugify, json

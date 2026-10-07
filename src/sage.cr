@@ -1,0 +1,23 @@
+require "file_utils"
+require "./sage/error"
+require "./sage/crinja_ext"
+require "./sage/markd_ext"
+require "./sage/chain"
+require "./sage/processors"
+require "./sage/front_matter"
+require "./sage/values"
+require "./sage/config"
+require "./sage/page"
+require "./sage/site"
+require "./sage/template_env"
+require "./sage/renderer"
+require "./sage/builder"
+require "./sage/listing"
+require "./sage/server"
+require "./sage/hugo_convert"
+require "./sage/init"
+require "./sage/cli"
+
+module Sage
+  VERSION = "0.1.0"
+end

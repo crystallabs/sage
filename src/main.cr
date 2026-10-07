@@ -1,3 +1,3 @@
-require "./ssg"
+require "./sage"
 
-SSG::CLI.main
+Sage::CLI.main

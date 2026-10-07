@@ -1,7 +1,7 @@
 require "file_utils"
 require "html"
 
-module SSG
+module Sage
   # Renders pages and resources into the output directory.
   #
   # Layout lookup for a page of kind K (page or list), format F and top-level

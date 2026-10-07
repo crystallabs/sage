@@ -3,17 +3,17 @@ require "./spec_helper"
 private ROOT = File.join(FIXTURES, "classify")
 
 private def titles(*filters : String) : Array(String)
-  SSG::Listing.pages(ROOT, filters.to_a).map(&.title)
+  Sage::Listing.pages(ROOT, filters.to_a).map(&.title)
 end
 
 private def printed(pages, **opts) : String
-  String.build { |io| SSG::Listing.print(pages, io, **opts, base: ROOT) }
+  String.build { |io| Sage::Listing.print(pages, io, **opts, base: ROOT) }
 end
 
-describe SSG::Listing do
+describe Sage::Listing do
   it "lists every page that has a source file, drafts included, by source path" do
-    SSG::Listing.pages(ROOT).map(&.title).should eq ["About", "Hello", "Hidden", "Later", "Shortcodes", "Custom", "Intro", "Home",
-                                                     "Child", "Section", "Silent", "All tags"]
+    Sage::Listing.pages(ROOT).map(&.title).should eq ["About", "Hello", "Hidden", "Later", "Shortcodes", "Custom", "Intro", "Home",
+                                                      "Child", "Section", "Silent", "All tags"]
   end
 
   it "finds drafts, which a normal site load leaves out" do
@@ -22,22 +22,22 @@ describe SSG::Listing do
   end
 
   it "turns --drafts and --published into the draft filter" do
-    SSG::Listing.status(false, false).should be_empty
-    SSG::Listing.pages(ROOT, SSG::Listing.status(true, false)).map(&.title).should eq ["Hidden"]
-    published = SSG::Listing.pages(ROOT, SSG::Listing.status(false, true)).map(&.title)
+    Sage::Listing.status(false, false).should be_empty
+    Sage::Listing.pages(ROOT, Sage::Listing.status(true, false)).map(&.title).should eq ["Hidden"]
+    published = Sage::Listing.pages(ROOT, Sage::Listing.status(false, true)).map(&.title)
     published.size.should eq 11
     published.should_not contain "Hidden"
-    expect_raises(SSG::Error, /exclude each other/) { SSG::Listing.status(true, true) }
-    expect_raises(SSG::Error, /exclude each other/) { SSG::Listing.status(false, true, true) }
+    expect_raises(Sage::Error, /exclude each other/) { Sage::Listing.status(true, true) }
+    expect_raises(Sage::Error, /exclude each other/) { Sage::Listing.status(false, true, true) }
   end
 
   it "lists the pages created without a source file, by url, with --implicit" do
-    SSG::Listing.status(false, false, true).should be_empty
-    pages = SSG::Listing.pages(ROOT, implicit: true)
+    Sage::Listing.status(false, false, true).should be_empty
+    pages = Sage::Listing.pages(ROOT, implicit: true)
     pages.map(&.url).should eq ["/blog/", "/docs/", "/tags/a/", "/tags/b/", "/tags/cascaded/"]
     printed(pages).should start_with "/blog/\tBlog\n/docs/\tDocs\n/tags/a/\ta\n"
     printed(pages, paths: true).should start_with "/blog/\n/docs/\n"
-    (pages.map(&.title) & SSG::Listing.pages(ROOT).map(&.title)).should be_empty
+    (pages.map(&.title) & Sage::Listing.pages(ROOT).map(&.title)).should be_empty
   end
 
   it "compares booleans and numbers as YAML reads them" do
@@ -84,7 +84,7 @@ describe SSG::Listing do
   end
 
   it "prints path and title, or paths alone, relative to a directory" do
-    pages = SSG::Listing.pages(ROOT, ["tags=a"])
+    pages = Sage::Listing.pages(ROOT, ["tags=a"])
     printed(pages).should eq "content/blog/hello/index.md\tHello\ncontent/blog/later.md\tLater\n"
     printed(pages, paths: true).should eq "content/blog/hello/index.md\ncontent/blog/later.md\n"
     printed(pages, nul: true).should eq "content/blog/hello/index.md\0content/blog/later.md\0"
@@ -92,8 +92,8 @@ describe SSG::Listing do
 
   it "rejects malformed filters and keys that no page has" do
     ["weight>5", "draft==true", "=true", "!draft", ""].each do |arg|
-      expect_raises(SSG::Error, "bad filter #{arg.inspect}") { titles(arg) }
+      expect_raises(Sage::Error, "bad filter #{arg.inspect}") { titles(arg) }
     end
-    expect_raises(SSG::Error, %(no page has the front matter key "drfat")) { titles("drfat!=true") }
+    expect_raises(Sage::Error, %(no page has the front matter key "drfat")) { titles("drfat!=true") }
   end
 end

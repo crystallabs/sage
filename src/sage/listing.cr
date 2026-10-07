@@ -1,7 +1,7 @@
 require "yaml"
 
-module SSG
-  # `ssg pages [FILTER...]`: the pages that have a source file, selected by
+module Sage
+  # `sage pages [FILTER...]`: the pages that have a source file, selected by
   # front matter. Computed from the site graph; nothing is rendered or written.
   module Listing
     # One command-line filter, matched against a page's effective front

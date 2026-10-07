@@ -1,6 +1,6 @@
 require "http/server"
 
-module SSG
+module Sage
   # Development server: serves the output directory (index.html for
   # directories), rebuilds when a source file changes, and reloads open
   # browser tabs after each rebuild via a small injected script.
@@ -57,7 +57,7 @@ module SSG
     class Handler
       include HTTP::Handler
 
-      RELOAD_PATH = "/__ssg/generation"
+      RELOAD_PATH = "/__sage/generation"
 
       def initialize(@dir : String, @generation : -> Int32)
       end

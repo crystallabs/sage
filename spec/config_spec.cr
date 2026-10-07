@@ -1,24 +1,24 @@
 require "./spec_helper"
 
-describe SSG::Config do
+describe Sage::Config do
   it "passes markdown options through" do
-    data = SSG::FrontMatter::Data.new
+    data = Sage::FrontMatter::Data.new
     data["markdown"] = YAML.parse("smart: true\nsafe: true")
-    config = SSG::Config.new("/x", data)
+    config = Sage::Config.new("/x", data)
     config.markdown.smart?.should be_true
     config.markdown.safe?.should be_true
     config.markdown.gfm?.should be_false
-    md = SSG::Processors::Markdown.new(config.markdown)
+    md = Sage::Processors::Markdown.new(config.markdown)
     site = load_fixture("classify")
-    ctx = SSG::Chain::Context.new(site, SSG::TemplateEnv.build(site))
+    ctx = Sage::Chain::Context.new(site, Sage::TemplateEnv.build(site))
     String.new(md.call(%(say "hi" <b>x</b>).to_slice, ctx)).should contain "&quot;hi&quot;".sub("&quot;hi&quot;", "“hi”")
     String.new(md.call(%(<b>x</b>).to_slice, ctx)).should contain "<!-- raw HTML omitted -->"
   end
 
   it "takes a heading's id from a trailing {#id}, else from its text" do
-    md = SSG::Processors::Markdown.new
+    md = Sage::Processors::Markdown.new
     site = load_fixture("classify")
-    ctx = SSG::Chain::Context.new(site, SSG::TemplateEnv.build(site))
+    ctx = Sage::Chain::Context.new(site, Sage::TemplateEnv.build(site))
     html = String.new(md.call("## The *Intro* {#intro}\n\n## Plain one\n\n### Again {#intro}\n".to_slice, ctx))
     html.should contain %(<h2 id="intro">The <em>Intro</em></h2>)
     html.should contain %(<h2 id="plain-one">Plain one</h2>)
@@ -26,83 +26,83 @@ describe SSG::Config do
   end
 
   it "keeps inline markup between an ampersand and a later semicolon" do
-    md = SSG::Processors::Markdown.new
+    md = Sage::Processors::Markdown.new
     site = load_fixture("classify")
-    ctx = SSG::Chain::Context.new(site, SSG::TemplateEnv.build(site))
+    ctx = Sage::Chain::Context.new(site, Sage::TemplateEnv.build(site))
     html = String.new(md.call("AT&T and [a link](/x) and `code`; then &mdash; &#65; &amp; &nosuch; R&D\n".to_slice, ctx))
     html.should contain %(AT&amp;T and <a href="/x">a link</a> and <code>code</code>; then — A &amp; &amp;nosuch; R&amp;D)
   end
 
   it "does not autolink a url that is already the text of an html link" do
-    data = SSG::FrontMatter::Data.new
+    data = Sage::FrontMatter::Data.new
     data["markdown"] = YAML.parse("gfm: true\nautolink: true")
-    md = SSG::Processors::Markdown.new(SSG::Config.new("/x", data).markdown)
+    md = Sage::Processors::Markdown.new(Sage::Config.new("/x", data).markdown)
     site = load_fixture("classify")
-    ctx = SSG::Chain::Context.new(site, SSG::TemplateEnv.build(site))
+    ctx = Sage::Chain::Context.new(site, Sage::TemplateEnv.build(site))
     html = String.new(md.call(%(At <a href="https://e.org/">https://e.org/</a>. Also https://f.org/x and [https://g.org/](/g).\n).to_slice, ctx))
     html.should contain %(At <a href="https://e.org/">https://e.org/</a>. Also <a href="https://f.org/x">https://f.org/x</a> and <a href="/g">https://g.org/</a>.)
   end
 
   it "turns highlighting off or picks a theme" do
-    data = SSG::FrontMatter::Data.new
+    data = Sage::FrontMatter::Data.new
     data["markdown"] = YAML.parse("highlight: false")
-    SSG::Config.new("/x", data).highlight_theme.should be_nil
+    Sage::Config.new("/x", data).highlight_theme.should be_nil
     data["markdown"] = YAML.parse("highlight: monokai\nline_numbers: true")
-    c = SSG::Config.new("/x", data)
+    c = Sage::Config.new("/x", data)
     c.highlight_theme.should eq "monokai"
     c.line_numbers?.should be_true
-    SSG::Config.new("/x", SSG::FrontMatter::Data.new).highlight_theme.should eq "default-dark"
-    expect_raises(SSG::Error, /unknown highlight theme/) { SSG::Processors::Markdown.formatter("no-such-theme", false) }
+    Sage::Config.new("/x", Sage::FrontMatter::Data.new).highlight_theme.should eq "default-dark"
+    expect_raises(Sage::Error, /unknown highlight theme/) { Sage::Processors::Markdown.formatter("no-such-theme", false) }
   end
 
   it "adds a dark highlighting theme under prefers-color-scheme" do
-    data = SSG::FrontMatter::Data.new
+    data = Sage::FrontMatter::Data.new
     data["markdown"] = YAML.parse("highlight: github\nhighlight_dark: github-dark")
-    c = SSG::Config.new("/x", data)
+    c = Sage::Config.new("/x", data)
     c.highlight_dark_theme.should eq "github-dark"
-    SSG::Config.new("/x", SSG::FrontMatter::Data.new).highlight_dark_theme.should be_nil
+    Sage::Config.new("/x", Sage::FrontMatter::Data.new).highlight_dark_theme.should be_nil
 
-    light_only = SSG::Processors::Markdown.new(formatter: SSG::Processors::Markdown.formatter("github", false))
+    light_only = Sage::Processors::Markdown.new(formatter: Sage::Processors::Markdown.formatter("github", false))
     light_only.css.should_not contain "@media"
-    both = SSG::Processors::Markdown.new(formatter: light_only.formatter, dark_formatter: SSG::Processors::Markdown.formatter("github-dark", false))
+    both = Sage::Processors::Markdown.new(formatter: light_only.formatter, dark_formatter: Sage::Processors::Markdown.formatter("github-dark", false))
     both.css.should start_with light_only.css
     both.css.should contain "\n@media (prefers-color-scheme: dark) {.hl-"
-    both.css.should contain SSG::Processors::Markdown.css("github-dark")
-    expect_raises(SSG::Error, /unknown highlight theme/) { SSG::Processors::Markdown.css("no-such-theme") }
+    both.css.should contain Sage::Processors::Markdown.css("github-dark")
+    expect_raises(Sage::Error, /unknown highlight theme/) { Sage::Processors::Markdown.css("no-such-theme") }
   end
 
   it "lets templates ask for one highlighting theme by name" do
     site = load_fixture("classify")
-    crinja = SSG::TemplateEnv.build(site)
-    crinja.from_string(%({{ highlight_css("github-dark") }})).render.should eq SSG::Processors::Markdown.css("github-dark")
-    crinja.from_string(%({{ highlight_css() }})).render.should eq SSG::Processors::Markdown.css("default-dark")
+    crinja = Sage::TemplateEnv.build(site)
+    crinja.from_string(%({{ highlight_css("github-dark") }})).render.should eq Sage::Processors::Markdown.css("github-dark")
+    crinja.from_string(%({{ highlight_css() }})).render.should eq Sage::Processors::Markdown.css("default-dark")
     expect_raises(Crinja::RuntimeError, /unknown theme "nope"/) { crinja.from_string(%({{ highlight_css("nope") }})).render }
   end
 
   it "accepts one theme or a list and rejects missing ones" do
     root = File.join(FIXTURES, "classify")
-    data = SSG::FrontMatter::Data.new
+    data = Sage::FrontMatter::Data.new
     data["theme"] = YAML.parse("basic")
-    c = SSG::Config.new(root, data)
+    c = Sage::Config.new(root, data)
     c.themes.should eq ["basic"]
     c.layout_dirs.should eq [File.join(root, "layouts"), File.join(root, "themes/basic/layouts")]
     data["theme"] = YAML.parse("[basic, basic]")
-    SSG::Config.new(root, data).themes.should eq ["basic", "basic"]
+    Sage::Config.new(root, data).themes.should eq ["basic", "basic"]
     data["theme"] = YAML.parse("nope")
-    expect_raises(SSG::Error, /theme not found/) { SSG::Config.new(root, data) }
+    expect_raises(Sage::Error, /theme not found/) { Sage::Config.new(root, data) }
   end
 
   it "reads the sass output style" do
-    data = SSG::FrontMatter::Data.new
+    data = Sage::FrontMatter::Data.new
     data["sass"] = YAML.parse("style: compressed")
-    SSG::Config.new("/x", data).sass_style.should eq "compressed"
-    SSG::Processors::Sass.style("compressed").should eq Sass::OutputStyle::COMPRESSED
-    expect_raises(SSG::Error, /unknown sass style/) { SSG::Processors::Sass.style("tiny") }
+    Sage::Config.new("/x", data).sass_style.should eq "compressed"
+    Sage::Processors::Sass.style("compressed").should eq Sass::OutputStyle::COMPRESSED
+    expect_raises(Sage::Error, /unknown sass style/) { Sage::Processors::Sass.style("tiny") }
   end
 
   it "rejects unknown markdown options" do
-    data = SSG::FrontMatter::Data.new
+    data = Sage::FrontMatter::Data.new
     data["markdown"] = YAML.parse("bogus: true")
-    expect_raises(SSG::Error, /unknown markdown option bogus/) { SSG::Config.new("/x", data) }
+    expect_raises(Sage::Error, /unknown markdown option bogus/) { Sage::Config.new("/x", data) }
   end
 end

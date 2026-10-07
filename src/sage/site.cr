@@ -1,6 +1,6 @@
 require "crinja"
 
-module SSG
+module Sage
   class Site
     include Crinja::Object
 

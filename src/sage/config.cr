@@ -1,7 +1,7 @@
 require "yaml"
 require "markd"
 
-module SSG
+module Sage
   class Config
     getter title : String
     getter base_url : String

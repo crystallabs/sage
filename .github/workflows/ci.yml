@@ -1,14 +1,14 @@
 # Runs the specs and the linter on every push and pull request. When a
-# release is published, additionally builds ssg for each platform and
+# release is published, additionally builds sage for each platform and
 # attaches the archives to the release, after the specs have passed. Re-run
 # the release part for an existing release with "Run workflow" and its tag.
 #
 # Release assets, as in https://github.com/crystallabs/fluence/releases:
 #
-#   ssg-<tag>-linux-x86_64.tar.gz    (+ .sha256)
-#   ssg-<tag>-linux-aarch64.tar.gz   (+ .sha256)
-#   ssg-<tag>-macos-x86_64.tar.gz    (+ .sha256)
-#   ssg-<tag>-macos-aarch64.tar.gz   (+ .sha256)
+#   sage-<tag>-linux-x86_64.tar.gz    (+ .sha256)
+#   sage-<tag>-linux-aarch64.tar.gz   (+ .sha256)
+#   sage-<tag>-macos-x86_64.tar.gz    (+ .sha256)
+#   sage-<tag>-macos-aarch64.tar.gz   (+ .sha256)
 #
 # Linux binaries are fully static (musl, built in the Alpine Crystal image
 # by .github/build-linux.sh) and are run inside a debian:12 container before
@@ -96,7 +96,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: linux-${{ matrix.arch }}
-          path: ssg
+          path: sage
           if-no-files-found: error
 
   test-linux:
@@ -122,9 +122,9 @@ jobs:
 
       - name: Run the binary
         run: |
-          chmod +x ssg
-          ./ssg version
-          ./ssg build -s example
+          chmod +x sage
+          ./sage version
+          ./sage build -s example
           test -f example/public/index.html
 
   upload-linux:
@@ -148,9 +148,9 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          chmod +x ssg
-          name="ssg-${TAG}-linux-${{ matrix.arch }}"
-          tar czf "$name.tar.gz" ssg README.md
+          chmod +x sage
+          name="sage-${TAG}-linux-${{ matrix.arch }}"
+          tar czf "$name.tar.gz" sage README.md
           sha256sum "$name.tar.gz" > "$name.tar.gz.sha256"
           gh release upload "$TAG" "$name.tar.gz" "$name.tar.gz.sha256" --clobber
 
@@ -188,22 +188,22 @@ jobs:
       - name: Build
         run: |
           shards install --without-development
-          crystal build --release --no-debug src/main.cr -o ssg \
+          crystal build --release --no-debug src/main.cr -o sage \
             --link-flags "-L$PWD/static-libs -lc++"
-          otool -L ssg
-          if otool -L ssg | grep -E '/opt/homebrew|/usr/local/(opt|Cellar)'; then
+          otool -L sage
+          if otool -L sage | grep -E '/opt/homebrew|/usr/local/(opt|Cellar)'; then
             echo "binary still depends on Homebrew libraries" >&2
             exit 1
           fi
-          ./ssg version
-          ./ssg build -s example
+          ./sage version
+          ./sage build -s example
           test -f example/public/index.html
 
       - name: Package and upload
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          name="ssg-${TAG}-macos-${{ matrix.arch }}"
-          tar czf "$name.tar.gz" ssg README.md
+          name="sage-${TAG}-macos-${{ matrix.arch }}"
+          tar czf "$name.tar.gz" sage README.md
           shasum -a 256 "$name.tar.gz" > "$name.tar.gz.sha256"
           gh release upload "$TAG" "$name.tar.gz" "$name.tar.gz.sha256" --clobber

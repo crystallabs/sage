@@ -1,4 +1,4 @@
-name: ssg
+name: sage
 version: 0.1.0
 
 authors:
@@ -9,7 +9,7 @@ description: |
   derived from filename extension chains, templates are Crinja (Jinja2).
 
 targets:
-  ssg:
+  sage:
     main: src/main.cr
   ameba:
     main: lib/ameba/bin/ameba.cr

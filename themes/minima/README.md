@@ -1,4 +1,4 @@
-# Minima for ssg
+# Minima for sage
 
 A port of the [Minima](https://github.com/mivinci/hugo-theme-minima) Hugo
 theme (crystallabs fork). Clean, minimal, with light/dark/sand/rock colour
@@ -13,7 +13,7 @@ Use it from a site's `config.yml`:
     taxonomies: [tags, series]
 
 `exampleSite/` is a complete site using the theme; build it with
-`ssg build -s themes/minima/exampleSite`.
+`sage build -s themes/minima/exampleSite`.
 
 ## Layout
 

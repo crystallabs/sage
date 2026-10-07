@@ -1,4 +1,4 @@
-module SSG
+module Sage
   module Builder
     def self.renderer(root : String, drafts : Bool = false, base_url : String? = nil, touch : Bool = false) : Renderer
       config = Config.load(root)

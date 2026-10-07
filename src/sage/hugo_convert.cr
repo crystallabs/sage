@@ -1,4 +1,4 @@
-module SSG
+module Sage
   # One-time translation of Hugo shortcode calls into Jinja macro calls.
   #
   #   {{< L "https://x" "text" >}}      -> {{ L("https://x", "text") }}
